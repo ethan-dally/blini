@@ -1,10 +1,11 @@
 use std::fmt;
+use enum_map::Enum;
 use crate::common::bitboard::Bitboard;
 use crate::common::file::File;
 use crate::common::rank::Rank;
 
 #[repr(u8)] 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,

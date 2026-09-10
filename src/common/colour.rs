@@ -6,6 +6,23 @@ pub enum Colour {
     White,
 }
 
+impl Default for Colour {
+    fn default() -> Self {
+        Colour::White
+    }
+}
+
+impl Colour {
+    #[inline]
+    pub const fn try_from_char(c: char) -> Option<Colour> {
+        match c {
+            'w' => Some(Colour::White),
+            'b' => Some(Colour::Black),
+            _ => None
+        }
+    }
+}
+
 impl From<bool> for Colour {
     fn from(value: bool) -> Self {
         match value {
