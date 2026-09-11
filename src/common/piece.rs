@@ -1,7 +1,7 @@
-use enum_map::Enum;
 use crate::common::colour::Colour;
+use enum_map::Enum;
 
-#[repr(u8)] 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Piece {
     Pawn,
@@ -9,7 +9,7 @@ pub enum Piece {
     Knight,
     Bishop,
     Queen,
-    King
+    King,
 }
 
 impl From<Piece> for char {
@@ -52,7 +52,7 @@ impl TryFrom<char> for Piece {
             'b' => Ok(Piece::Bishop),
             'q' => Ok(Piece::Queen),
             'k' => Ok(Piece::King),
-            _ => Err("invalid char".to_string())
+            _ => Err("invalid char".to_string()),
         }
     }
 }

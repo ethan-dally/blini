@@ -1,5 +1,5 @@
-pub mod common;
 pub mod board;
+pub mod common;
 
 fn main() {
     println!("Hello, world!");

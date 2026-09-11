@@ -1,5 +1,5 @@
-use std::{ops::BitXorAssign};
 use crate::common::{file::File, square::Square};
+use std::ops::BitXorAssign;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bitboard(pub u64);
@@ -15,7 +15,7 @@ impl Bitboard {
     }
 }
 
-impl BitXorAssign for Bitboard{
+impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
     }
@@ -40,8 +40,17 @@ fn bitboard_iter() {
     assert_eq!(iter1.next(), Some(Square::A1));
     assert_eq!(iter1.next(), None);
     let file_list: Vec<_> = File::C.to_bb().iter().collect();
-    assert_eq!(file_list, [
-        Square::C1, Square::C2, Square::C3, Square::C4, 
-        Square::C5, Square::C6, Square::C7, Square::C8
-    ]);
+    assert_eq!(
+        file_list,
+        [
+            Square::C1,
+            Square::C2,
+            Square::C3,
+            Square::C4,
+            Square::C5,
+            Square::C6,
+            Square::C7,
+            Square::C8
+        ]
+    );
 }
