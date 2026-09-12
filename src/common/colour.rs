@@ -3,8 +3,10 @@ use std::fmt;
 use enum_map::Enum;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
+#[derive(Default)]
 pub enum Colour {
     Black,
+    #[default]
     White,
 }
 
@@ -24,11 +26,6 @@ impl Colour {
     }
 }
 
-impl Default for Colour {
-    fn default() -> Self {
-        Colour::White
-    }
-}
 
 impl From<bool> for Colour {
     fn from(value: bool) -> Self {
@@ -60,6 +57,6 @@ fn colour() {
 
 #[test]
 fn to_bool() {
-    assert_eq!(true, Colour::White.to_bool());
-    assert_eq!(false, Colour::Black.to_bool());
+    assert!(Colour::White.to_bool());
+    assert!(!Colour::Black.to_bool());
 }

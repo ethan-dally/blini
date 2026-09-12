@@ -14,7 +14,7 @@ impl Board {
         let hmc = parts.next().ok_or("invalid whitespace")?;
         let fmc = parts.next().ok_or("invalid whitespace")?;
         if parts.next().is_some() {
-            return Err(format!("fen has too much whitespace"));
+            return Err("fen has too much whitespace".to_string());
         }
         println!("got past 1");
         /*
@@ -22,7 +22,7 @@ impl Board {
         */
         for (rank, row) in pieces.split('/').enumerate() {
             let Some(rank) = Rank::try_index(7 - rank as u8) else {
-                return Err(format!("fen has invalid ranks"));
+                return Err("fen has invalid ranks".to_string());
             };
             let mut file_count: u8 = 0;
             for c in row.chars() {
@@ -43,7 +43,7 @@ impl Board {
         stm
         */
         if stm.len() != 1 {
-            return Err(format!("fen stm too long"));
+            return Err("fen stm too long".to_string());
         }
         let stm: char = stm.chars().next().ok_or("unreachable")?;
         let stm = Colour::try_from_char(stm).ok_or("invalid stm char")?;
@@ -53,7 +53,7 @@ impl Board {
         castling
         */
         if castling.len() > 4 {
-            return Err(format!("fen castling string length too big"));
+            return Err("fen castling string length too big".to_string());
         }
         if castling != "-" {
             for c in castling.chars() {
@@ -81,7 +81,7 @@ impl Board {
         */
         let hmc = hmc.parse::<u8>().or(Err("hmc not a valid number"))?;
         if hmc > 50 {
-            return Err(format!("fen hmc above 50"));
+            return Err("fen hmc above 50".to_string());
         }
         board.set_hmc(hmc);
 
@@ -117,10 +117,10 @@ fn fen_default() {
         Rank::Two.to_bb() | Rank::Seven.to_bb()
     );
     assert_eq!(board.stm(), Colour::White);
-    assert_eq!(board.get_castling(Colour::White, true), true);
-    assert_eq!(board.get_castling(Colour::Black, true), true);
-    assert_eq!(board.get_castling(Colour::White, false), true);
-    assert_eq!(board.get_castling(Colour::Black, false), true);
+    assert!(board.get_castling(Colour::White, true));
+    assert!(board.get_castling(Colour::Black, true));
+    assert!(board.get_castling(Colour::White, false));
+    assert!(board.get_castling(Colour::Black, false));
     assert_eq!(board.en_passant(), None);
     assert_eq!(board.hmc(), 0);
     assert_eq!(board.fmn(), 1);
@@ -149,10 +149,10 @@ fn fen_custom_position() {
     );
     assert_eq!(board.mailbox(Square::D8), None);
     assert_eq!(board.stm(), Colour::Black);
-    assert_eq!(board.get_castling(Colour::White, true), true);
-    assert_eq!(board.get_castling(Colour::White, false), false);
-    assert_eq!(board.get_castling(Colour::Black, true), false);
-    assert_eq!(board.get_castling(Colour::Black, false), true);
+    assert!(board.get_castling(Colour::White, true));
+    assert!(!board.get_castling(Colour::White, false));
+    assert!(!board.get_castling(Colour::Black, true));
+    assert!(board.get_castling(Colour::Black, false));
     assert_eq!(board.en_passant(), Some(Square::D6));
     assert_eq!(board.hmc(), 17);
     assert_eq!(board.fmn(), 42);

@@ -1,4 +1,4 @@
-use crate::common::{file::File, square::Square};
+use crate::common::square::Square;
 use std::ops::{BitAnd, BitOr, BitXorAssign};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -50,6 +50,7 @@ impl Iterator for BitboardIter {
 
 #[test]
 fn bitboard_iter() {
+    use crate::common::file::File;
     let mut iter1 = Square::A1.to_bb().iter();
     assert_eq!(iter1.next(), Some(Square::A1));
     assert_eq!(iter1.next(), None);

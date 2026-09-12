@@ -100,16 +100,16 @@ impl Board {
 #[test]
 fn castling() {
     let mut board = Board::default();
-    assert_eq!(board.get_castling(Colour::White, true), false);
-    assert_eq!(board.get_castling(Colour::Black, true), false);
-    assert_eq!(board.get_castling(Colour::White, false), false);
-    assert_eq!(board.get_castling(Colour::Black, false), false);
+    assert!(!board.get_castling(Colour::White, true));
+    assert!(!board.get_castling(Colour::Black, true));
+    assert!(!board.get_castling(Colour::White, false));
+    assert!(!board.get_castling(Colour::Black, false));
     board.set_castling(Colour::White, true, true);
     board.set_castling(Colour::Black, true, true);
     board.set_castling(Colour::White, false, true);
     board.set_castling(Colour::Black, false, true);
-    assert_eq!(board.get_castling(Colour::White, true), true);
-    assert_eq!(board.get_castling(Colour::Black, true), true);
-    assert_eq!(board.get_castling(Colour::White, false), true);
-    assert_eq!(board.get_castling(Colour::Black, false), true);
+    assert!(board.get_castling(Colour::White, true));
+    assert!(board.get_castling(Colour::Black, true));
+    assert!(board.get_castling(Colour::White, false));
+    assert!(board.get_castling(Colour::Black, false));
 }

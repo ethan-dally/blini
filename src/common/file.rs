@@ -74,7 +74,7 @@ fn file() {
 #[test]
 fn file_to_bb() {
     let file_a_bb: u64 = 0b_00000001_00000001_00000001_00000001_00000001_00000001_00000001_00000001;
-    assert_eq!(File::A.to_bb(), Bitboard(file_a_bb << 0));
+    assert_eq!(File::A.to_bb(), Bitboard(file_a_bb));
     assert_eq!(File::B.to_bb(), Bitboard(file_a_bb << 1));
     assert_eq!(File::E.to_bb(), Bitboard(file_a_bb << 4));
     assert_eq!(File::H.to_bb(), Bitboard(file_a_bb << 7));
