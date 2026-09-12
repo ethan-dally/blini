@@ -1,3 +1,5 @@
+use std::fmt;
+
 use enum_map::Enum;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
@@ -34,6 +36,19 @@ impl From<bool> for Colour {
             true => Colour::White,
             false => Colour::Black,
         }
+    }
+}
+
+impl fmt::Display for Colour {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Colour::White => "White",
+                Colour::Black => "Black",
+            }
+        )
     }
 }
 

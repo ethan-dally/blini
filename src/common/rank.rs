@@ -31,23 +31,24 @@ impl Rank {
 
     #[inline]
     pub const fn try_from_char(c: char) -> Option<Rank> {
-       match c {
-           '1' => Some(Rank::One),
-           '2' => Some(Rank::Two),
-           '3' => Some(Rank::Three),
-           '4' => Some(Rank::Four),
-           '5' => Some(Rank::Five),
-           '6' => Some(Rank::Six),
-           '7' => Some(Rank::Seven),
-           '8' => Some(Rank::Eight),
-           _ => None
-       }
+        match c {
+            '1' => Some(Rank::One),
+            '2' => Some(Rank::Two),
+            '3' => Some(Rank::Three),
+            '4' => Some(Rank::Four),
+            '5' => Some(Rank::Five),
+            '6' => Some(Rank::Six),
+            '7' => Some(Rank::Seven),
+            '8' => Some(Rank::Eight),
+            _ => None,
+        }
     }
 }
 
 impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", *self as u8)
+        let num = *self as u8 + 1;
+        write!(f, "{num}")
     }
 }
 

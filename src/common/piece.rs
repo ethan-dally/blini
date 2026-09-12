@@ -5,7 +5,7 @@ use enum_map::Enum;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Piece {
     Pawn,
-    Castle,
+    Rook,
     Knight,
     Bishop,
     Queen,
@@ -16,7 +16,7 @@ impl From<Piece> for char {
     fn from(value: Piece) -> Self {
         match value {
             Piece::Pawn => 'p',
-            Piece::Castle => 'c',
+            Piece::Rook => 'r',
             Piece::Knight => 'n',
             Piece::Bishop => 'b',
             Piece::Queen => 'q',
@@ -26,10 +26,10 @@ impl From<Piece> for char {
 }
 
 impl Piece {
-    fn display(&self, colour: Colour) -> char {
-        let c = match self {
+    pub fn display(&self, colour: Colour) -> char {
+        let c = match &self {
             Piece::Pawn => 'p',
-            Piece::Castle => 'c',
+            Piece::Rook => 'r',
             Piece::Knight => 'n',
             Piece::Bishop => 'b',
             Piece::Queen => 'q',
@@ -47,7 +47,7 @@ impl TryFrom<char> for Piece {
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value.to_ascii_lowercase() {
             'p' => Ok(Piece::Pawn),
-            'c' => Ok(Piece::Castle),
+            'r' => Ok(Piece::Rook),
             'n' => Ok(Piece::Knight),
             'b' => Ok(Piece::Bishop),
             'q' => Ok(Piece::Queen),

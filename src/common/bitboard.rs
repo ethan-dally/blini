@@ -1,5 +1,5 @@
 use crate::common::{file::File, square::Square};
-use std::ops::BitXorAssign;
+use std::ops::{BitAnd, BitOr, BitXorAssign};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bitboard(pub u64);
@@ -18,6 +18,20 @@ impl Bitboard {
 impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
+    }
+}
+
+impl BitAnd for Bitboard {
+    type Output = Bitboard;
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Bitboard(self.0 & rhs.0)
+    }
+}
+
+impl BitOr for Bitboard {
+    type Output = Bitboard;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Bitboard(self.0 | rhs.0)
     }
 }
 

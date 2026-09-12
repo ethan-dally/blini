@@ -30,7 +30,7 @@ impl File {
     }
 
     #[inline]
-    pub const fn try_from_char(c:  char) -> Option<File> {
+    pub const fn try_from_char(c: char) -> Option<File> {
         match c.to_ascii_uppercase() {
             'A' => Some(File::A),
             'B' => Some(File::B),
@@ -40,14 +40,27 @@ impl File {
             'F' => Some(File::F),
             'G' => Some(File::G),
             'H' => Some(File::H),
-            _ => None
+            _ => None,
         }
     }
 }
 
 impl fmt::Display for File {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(
+            f,
+            "{}",
+            match self {
+                File::A => "A",
+                File::B => "B",
+                File::C => "C",
+                File::D => "D",
+                File::E => "E",
+                File::F => "F",
+                File::G => "G",
+                File::H => "H",
+            }
+        )
     }
 }
 

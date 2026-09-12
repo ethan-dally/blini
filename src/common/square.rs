@@ -76,7 +76,7 @@ pub enum Square {
 impl Square {
     #[inline]
     pub const fn new(rank: Rank, file: File) -> Square {
-        let index = file as u8 * 8 + rank as u8;
+        let index = rank as u8 * 8 + file as u8;
         Square::try_index(index).expect("unreachable")
     }
 
@@ -107,8 +107,9 @@ impl Square {
 
     #[inline]
     pub fn try_from_str(sqr: &str) -> Option<Square> {
-        let file = File::try_from_char(sqr.chars().next()?)?;
-        let rank = Rank::try_from_char(sqr.chars().next()?)?;
+        let mut chars = sqr.chars();
+        let file = File::try_from_char(chars.next()?)?;
+        let rank = Rank::try_from_char(chars.next()?)?;
         Some(Square::new(rank, file))
     }
 }
@@ -136,4 +137,14 @@ fn to_bb() {
         let bb = square.to_bb();
         assert_eq!(bb.0.trailing_zeros(), id as u32);
     }
+}
+
+#[test]
+fn square_new() {
+    let sqr1 = Square::new(Rank::Two, File::A);
+    let sqr2 = Square::new(Rank::Eight, File::H);
+    assert_eq!(sqr1.rank(), Rank::Two);
+    assert_eq!(sqr1.file(), File::A);
+    assert_eq!(sqr2.rank(), Rank::Eight);
+    assert_eq!(sqr2.file(), File::H);
 }
