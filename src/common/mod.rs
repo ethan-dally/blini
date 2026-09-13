@@ -1,5 +1,6 @@
 pub mod bitboard;
 pub mod colour;
+pub mod direction;
 pub mod file;
 pub mod piece;
 pub mod rank;

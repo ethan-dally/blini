@@ -2,8 +2,7 @@ use std::fmt;
 
 use enum_map::Enum;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum)]
-#[derive(Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Enum, Default)]
 pub enum Colour {
     Black,
     #[default]
@@ -25,7 +24,6 @@ impl Colour {
         (self as usize) == 0b1
     }
 }
-
 
 impl From<bool> for Colour {
     fn from(value: bool) -> Self {

@@ -4,7 +4,7 @@ use crate::{
 };
 
 impl Board {
-    fn parse_fen(fen: &str) -> Result<Board, String> {
+    pub fn parse_fen(fen: &str) -> Result<Board, String> {
         let mut board = Board::default();
         let mut parts = fen.split_whitespace();
         let pieces = parts.next().ok_or("invalid whitespace")?;
@@ -16,7 +16,7 @@ impl Board {
         if parts.next().is_some() {
             return Err("fen has too much whitespace".to_string());
         }
-        println!("got past 1");
+
         /*
         pieces
         */

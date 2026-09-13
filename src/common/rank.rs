@@ -43,6 +43,17 @@ impl Rank {
             _ => None,
         }
     }
+
+    pub const ALL: [Rank; 8] = [
+        Rank::One,
+        Rank::Two,
+        Rank::Three,
+        Rank::Four,
+        Rank::Five,
+        Rank::Six,
+        Rank::Seven,
+        Rank::Eight,
+    ];
 }
 
 impl fmt::Display for Rank {

@@ -1,76 +1,23 @@
 use crate::common::bitboard::Bitboard;
+use crate::common::colour::Colour;
+use crate::common::direction::Direction;
 use crate::common::file::File;
 use crate::common::rank::Rank;
 use enum_map::Enum;
 use std::fmt;
 
 #[repr(u8)]
+#[rustfmt::skip]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Square {
-    A1,
-    B1,
-    C1,
-    D1,
-    E1,
-    F1,
-    G1,
-    H1,
-    A2,
-    B2,
-    C2,
-    D2,
-    E2,
-    F2,
-    G2,
-    H2,
-    A3,
-    B3,
-    C3,
-    D3,
-    E3,
-    F3,
-    G3,
-    H3,
-    A4,
-    B4,
-    C4,
-    D4,
-    E4,
-    F4,
-    G4,
-    H4,
-    A5,
-    B5,
-    C5,
-    D5,
-    E5,
-    F5,
-    G5,
-    H5,
-    A6,
-    B6,
-    C6,
-    D6,
-    E6,
-    F6,
-    G6,
-    H6,
-    A7,
-    B7,
-    C7,
-    D7,
-    E7,
-    F7,
-    G7,
-    H7,
-    A8,
-    B8,
-    C8,
-    D8,
-    E8,
-    F8,
-    G8,
-    H8,
+    A1, B1, C1, D1, E1, F1, G1, H1,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A8, B8, C8, D8, E8, F8, G8, H8,
 }
 
 impl Square {
@@ -112,6 +59,23 @@ impl Square {
         let rank = Rank::try_from_char(chars.next()?)?;
         Some(Square::new(rank, file))
     }
+
+    #[inline]
+    pub fn relative_shift<D: Direction>(self, colour: Colour, amt: u8) -> Option<Square> {
+        match colour {
+            Colour::White => self.shift::<D>(amt),
+            Colour::Black => self.shift::<D::Opposite>(amt),
+        }
+    }
+
+    #[inline]
+    pub fn shift<D: Direction>(self, amt: u8) -> Option<Square> {
+        if amt > 7 {
+            return None;
+        }
+        let index = self as i8 + D::DX + D::DY * 8;
+        Square::try_index(index as u8) //neg check not needed
+    }
 }
 
 impl fmt::Display for Square {
@@ -132,6 +96,7 @@ fn rank_and_file() {
 
 #[test]
 fn to_bb() {
+    assert_eq!(Square::H8.to_bb().0, 0x8000000000000000);
     for id in 0..64 {
         let square = Square::try_index(id).unwrap();
         let bb = square.to_bb();

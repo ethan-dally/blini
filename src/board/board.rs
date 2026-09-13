@@ -92,6 +92,11 @@ impl Board {
     }
 
     #[inline]
+    pub fn all_pieces(&self) -> Bitboard {
+        self.colours[Colour::White] & self.colours[Colour::Black]
+    }
+
+    #[inline]
     pub fn mailbox(&self, sqr: Square) -> Option<(Piece, Colour)> {
         self.mailbox[sqr]
     }

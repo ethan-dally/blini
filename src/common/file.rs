@@ -43,6 +43,17 @@ impl File {
             _ => None,
         }
     }
+
+    pub const ALL: [File; 8] = [
+        File::A,
+        File::B,
+        File::C,
+        File::D,
+        File::E,
+        File::F,
+        File::G,
+        File::H,
+    ];
 }
 
 impl fmt::Display for File {
