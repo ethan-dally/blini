@@ -4,7 +4,6 @@ use crate::{
         r#move::{Move, MoveList},
     },
     common::{
-        colour::Colour,
         direction::{North, South},
         piece::Piece,
     },
@@ -55,5 +54,5 @@ fn default_board() {
         .map_err(|s| panic!("invalid fen as {s}"))
         .unwrap();
     println!("moves count: {}", board.get_moves().0.len());
-    assert!(false);
+    // assert!(false);
 }

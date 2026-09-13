@@ -65,15 +65,15 @@ impl Direction for SouthWest {
 #[inline]
 pub const fn shift_mask<D: Direction>(amt: u8) -> u64 {
     let horizontal = match D::DX.is_positive() {
-        true => 0xFFu8 >> D::DX as u8 * amt,
-        false => 0xFFu8 << D::DX.abs() as u8 * amt,
+        true => 0xFFu8 >> (D::DX as u8 * amt),
+        false => 0xFFu8 << (D::DX.unsigned_abs() * amt),
     };
     let horizontal = horizontal as u64 * 0x0101010101010101;
-    let out = match D::DY.is_positive() {
-        true => horizontal >> D::DY as u8 * amt * 8,
-        false => horizontal << D::DY.abs() as u8 * amt * 8,
-    };
-    out
+    
+    match D::DY.is_positive() {
+        true => horizontal >> (D::DY as u8 * amt * 8),
+        false => horizontal << (D::DY.unsigned_abs() * amt * 8),
+    }
 }
 
 #[test]

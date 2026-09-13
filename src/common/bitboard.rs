@@ -1,6 +1,6 @@
 use crate::common::{
-    colour::{self, Colour},
-    direction::{Direction, East, North, NorthEast, South, SouthWest, West, shift_mask},
+    colour::Colour,
+    direction::{NorthEast, North, East, South, West, Direction, shift_mask},
     file::File,
     rank::Rank,
     square::Square,
@@ -83,7 +83,7 @@ impl Not for Bitboard {
 
 impl Display for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\n")?;
+        writeln!(f)?;
         for rank in Rank::ALL.iter().rev() {
             for file in File::ALL {
                 let sqr = Square::new(*rank, file);
@@ -96,9 +96,9 @@ impl Display for Bitboard {
                     }
                 )?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
-        write!(f, "\n")
+        writeln!(f)
     }
 }
 
