@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Not};
 
 use enum_map::Enum;
 
@@ -30,6 +30,16 @@ impl From<bool> for Colour {
         match value {
             true => Colour::White,
             false => Colour::Black,
+        }
+    }
+}
+
+impl Not for Colour {
+    type Output = Colour;
+    fn not(self) -> Self::Output {
+        match self {
+            Colour::Black => Colour::White,
+            Colour::White => Colour::Black,
         }
     }
 }

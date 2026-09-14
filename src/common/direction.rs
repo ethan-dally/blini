@@ -69,7 +69,7 @@ pub const fn shift_mask<D: Direction>(amt: u8) -> u64 {
         false => 0xFFu8 << (D::DX.unsigned_abs() * amt),
     };
     let horizontal = horizontal as u64 * 0x0101010101010101;
-    
+
     match D::DY.is_positive() {
         true => horizontal >> (D::DY as u8 * amt * 8),
         false => horizontal << (D::DY.unsigned_abs() * amt * 8),

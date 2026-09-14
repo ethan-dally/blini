@@ -1,6 +1,6 @@
 use crate::common::{
     colour::Colour,
-    direction::{NorthEast, North, East, South, West, Direction, shift_mask},
+    direction::{Direction, East, North, NorthEast, South, West, shift_mask},
     file::File,
     rank::Rank,
     square::Square,

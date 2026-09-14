@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::common::bitboard::Bitboard;
+use crate::common::{bitboard::Bitboard, colour::Colour};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -44,6 +44,16 @@ impl Rank {
         }
     }
 
+    #[inline]
+    pub fn relative_to(self, colour: Colour) -> Rank {
+        if colour == Colour::Black {
+            let index = 7 - self as u8;
+            return Rank::try_index(index).expect("unreachable");
+        } else {
+            self
+        }
+    }
+
     pub const ALL: [Rank; 8] = [
         Rank::One,
         Rank::Two,
@@ -60,6 +70,21 @@ impl fmt::Display for Rank {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let num = *self as u8 + 1;
         write!(f, "{num}")
+    }
+}
+
+impl From<Rank> for char {
+    fn from(value: Rank) -> Self {
+        match value {
+            Rank::One => '1',
+            Rank::Two => '2',
+            Rank::Three => '3',
+            Rank::Four => '4',
+            Rank::Five => '5',
+            Rank::Six => '6',
+            Rank::Seven => '7',
+            Rank::Eight => '8',
+        }
     }
 }
 
