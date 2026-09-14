@@ -5,7 +5,6 @@ use crate::{
     },
     common::{
         direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest},
-        file::File,
         piece::Piece,
         rank::Rank,
     },

@@ -3,7 +3,7 @@ use crate::{
     common::{
         colour::Colour,
         file::File,
-        rank::{self, Rank},
+        rank::Rank,
         square::Square,
     },
 };
@@ -38,6 +38,6 @@ impl Display for Board {
                 writeln!(f, "╟─────┼─────┼─────┼─────┼─────┼─────┼─────┼─────╢")?;
             }
         }
-        write!(f, "╚═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╝\n")
+        writeln!(f, "╚═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╝")
     }
 }

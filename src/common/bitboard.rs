@@ -1,6 +1,6 @@
 use crate::common::{
     colour::Colour,
-    direction::{Direction, East, North, NorthEast, South, West, shift_mask},
+    direction::{Direction, shift_mask},
     file::File,
     rank::Rank,
     square::Square,
@@ -117,6 +117,7 @@ impl Iterator for BitboardIter {
 
 #[test]
 fn shift() {
+    use crate::common::direction::{East, West, South, North, NorthEast};
     //dirs
     assert_eq!(Square::A1.to_bb().shift::<East>(1), Square::B1.to_bb());
     assert_eq!(Square::C1.to_bb().shift::<West>(2), Square::A1.to_bb());

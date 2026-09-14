@@ -48,7 +48,7 @@ impl Rank {
     pub fn relative_to(self, colour: Colour) -> Rank {
         if colour == Colour::Black {
             let index = 7 - self as u8;
-            return Rank::try_index(index).expect("unreachable");
+            Rank::try_index(index).expect("unreachable")
         } else {
             self
         }
