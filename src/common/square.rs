@@ -1,6 +1,6 @@
 use crate::common::bitboard::Bitboard;
 use crate::common::colour::Colour;
-use crate::common::direction::Direction;
+use crate::common::direction::{Direction, *};
 use crate::common::file::File;
 use crate::common::rank::Rank;
 use enum_map::Enum;
@@ -49,7 +49,12 @@ impl Square {
         if index > 0b00111_111 {
             return None;
         }
-        Some(unsafe { core::mem::transmute::<u8, Square>(index) })
+        Some(Square::unchecked_index(index))
+    }
+
+    #[inline]
+    const fn unchecked_index(index: u8) -> Square {
+        unsafe { core::mem::transmute::<u8, Square>(index) }
     }
 
     #[inline]
@@ -69,13 +74,24 @@ impl Square {
     }
 
     #[inline]
-    pub fn shift<D: Direction>(self, amt: u8) -> Option<Square> {
-        if amt > 7 {
-            return None;
-        }
-        let index = self as i8 + D::DX + D::DY * 8;
-        Square::try_index(index as u8) //neg check not needed
+    pub const fn shift<D: Direction>(self, amt: u8) -> Option<Square> {
+        let file = self.file() as i8 + D::DX * amt as i8;
+        let rank = self.rank() as i8 + D::DY * amt as i8;
+        if file as u8 & 0b1111_1000 != 0 {return None;}
+        if rank as u8 & 0b1111_1000 != 0 {return None;}
+        let index = rank << 3 | file;
+        Square::try_index(index as u8)
     }
+
+    pub const ALL: [Square; 64] = {
+        let mut sqrs = [Square::A1; 64];
+        let mut i = 0;
+        while i < 64 {
+            sqrs[i] = Square::unchecked_index(i as u8);
+            i += 1;
+        }
+        sqrs
+    };
 }
 
 impl fmt::Display for Square {
@@ -112,4 +128,56 @@ fn square_new() {
     assert_eq!(sqr1.file(), File::A);
     assert_eq!(sqr2.rank(), Rank::Eight);
     assert_eq!(sqr2.file(), File::H);
+}
+
+#[test]
+fn shift() {
+    // North
+    assert_eq!(Square::A1.shift::<North>(1), Some(Square::A2));
+    assert_eq!(Square::A1.shift::<North>(7), Some(Square::A8));
+    assert_eq!(Square::A8.shift::<North>(1), None);
+
+    // South
+    assert_eq!(Square::A8.shift::<South>(1), Some(Square::A7));
+    assert_eq!(Square::A8.shift::<South>(7), Some(Square::A1));
+    assert_eq!(Square::A1.shift::<South>(1), None);
+
+    // East
+    assert_eq!(Square::A1.shift::<East>(1), Some(Square::B1));
+    assert_eq!(Square::A1.shift::<East>(7), Some(Square::H1));
+    assert_eq!(Square::H1.shift::<East>(1), None);
+
+    // West
+    assert_eq!(Square::H1.shift::<West>(1), Some(Square::G1));
+    assert_eq!(Square::H1.shift::<West>(7), Some(Square::A1));
+    assert_eq!(Square::A1.shift::<West>(1), None);
+
+    // NorthEast
+    assert_eq!(Square::A1.shift::<NorthEast>(1), Some(Square::B2));
+    assert_eq!(Square::A1.shift::<NorthEast>(7), Some(Square::H8));
+    assert_eq!(Square::H1.shift::<NorthEast>(1), None);
+    assert_eq!(Square::A8.shift::<NorthEast>(1), None);
+
+    // NorthWest
+    assert_eq!(Square::H1.shift::<NorthWest>(1), Some(Square::G2));
+    assert_eq!(Square::H1.shift::<NorthWest>(7), Some(Square::A8));
+    assert_eq!(Square::A1.shift::<NorthWest>(1), None);
+    assert_eq!(Square::H8.shift::<NorthWest>(1), None);
+
+    // SouthEast
+    assert_eq!(Square::A8.shift::<SouthEast>(1), Some(Square::B7));
+    assert_eq!(Square::A8.shift::<SouthEast>(7), Some(Square::H1));
+    assert_eq!(Square::H8.shift::<SouthEast>(1), None);
+    assert_eq!(Square::A1.shift::<SouthEast>(1), None);
+
+    // SouthWest
+    assert_eq!(Square::H8.shift::<SouthWest>(1), Some(Square::G7));
+    assert_eq!(Square::H8.shift::<SouthWest>(7), Some(Square::A1));
+    assert_eq!(Square::A8.shift::<SouthWest>(1), None);
+    assert_eq!(Square::H1.shift::<SouthWest>(1), None);
+
+    // Zero distance
+    assert_eq!(Square::E4.shift::<North>(0), Some(Square::E4));
+    assert_eq!(Square::E4.shift::<NorthEast>(0), Some(Square::E4));
+    assert_eq!(Square::E4.shift::<SouthWest>(0), Some(Square::E4));
 }

@@ -6,12 +6,10 @@ use crate::common::{
     square::Square,
 };
 use std::{
-    fmt::Display,
-    ops::{BitAnd, BitOr, BitXorAssign, Not},
-    u64,
+    fmt::Display, ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not}, u64,
 };
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Bitboard(pub u64);
 
 impl Bitboard {
@@ -60,6 +58,12 @@ impl BitXorAssign for Bitboard {
     }
 }
 
+impl BitOrAssign for Bitboard {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+}
+
 impl BitAnd for Bitboard {
     type Output = Bitboard;
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -81,6 +85,13 @@ impl Not for Bitboard {
     }
 }
 
+impl BitXor for Bitboard {
+    type Output = Bitboard;
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Bitboard(self.0 ^ rhs.0)
+    }
+}
+
 impl Display for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f)?;
@@ -91,7 +102,7 @@ impl Display for Bitboard {
                     f,
                     "{}",
                     match self.has(sqr) {
-                        false => " O",
+                        false => " ·",
                         true => " X",
                     }
                 )?;

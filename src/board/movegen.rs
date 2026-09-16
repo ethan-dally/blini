@@ -2,11 +2,8 @@ use crate::{
     board::{
         board::Board,
         r#move::{Move, MoveList},
-    },
-    common::{
-        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest},
-        piece::Piece,
-        rank::Rank,
+    }, common::{
+        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, masks::knight_mask, piece::Piece, rank::Rank,
     },
 };
 
@@ -17,6 +14,7 @@ impl Board {
         pawns
         */
         self.pawns(&mut move_list);
+        self.knights(&mut move_list);
         move_list
     }
 
@@ -68,6 +66,17 @@ impl Board {
             move_list.add(Move::new(src, dst));
         }
     }
+
+    #[inline]
+    fn knights(&self, move_list: &mut MoveList) {
+        let src_bb = self.pieces(Piece::Knight) & self.colours(self.stm());
+        for src in src_bb.iter() {
+            let valid_moves = knight_mask(src) & !self.colours(self.stm());
+            for dst in valid_moves.iter() {
+                move_list.add(Move::new(src, dst));
+            }
+        }
+    }
 }
 
 #[test]
@@ -75,8 +84,9 @@ fn default_board() {
     let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
         .map_err(|s| panic!("invalid fen as {s}"))
         .unwrap();
-    println!("{board}");
+    board.display();
     println!("moves count: {}", board.get_moves().0.len());
+    // assert!(false);
 }
 
 #[test]
@@ -84,5 +94,17 @@ fn pawn_attack() {
     let board = Board::parse_fen("4k3/8/8/2p1p1p1/3P1P2/8/8/4K3 w KQkq - 0 1")
         .map_err(|s| panic!("invalid fen as {s}"))
         .unwrap();
+    board.display();
     println!("moves count: {}", board.get_moves().0.len());
+    // assert!(false);
+}
+
+#[test]
+fn knight_attack() {
+    let board = Board::parse_fen("k7/8/8/3p1P2/8/4N3/8/K7 w - - 0 1")
+        .map_err(|s| panic!("invalid fen as {s}"))
+        .unwrap();
+    board.display();
+    println!("moves count: {}", board.get_moves().0.len());
+    assert!(false);
 }

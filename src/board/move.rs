@@ -7,6 +7,7 @@ const MAX_MOVES: usize = 218;
 pub struct Move {
     src: Square,
     dst: Square,
+
 }
 
 impl Move {
