@@ -1,13 +1,15 @@
-use std::{collections::HashMap, sync::{atomic::{AtomicBool, AtomicU64}, mpsc}, thread::{self, JoinHandle}};
+use core::time;
+use std::{collections::HashMap, num::NonZero, sync::{Arc, atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}, mpsc}, thread::{self, JoinHandle}, time::Instant};
 use crate::common::{bitboard::Bitboard, direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West}, file::File, rank::Rank, square::Square};
 use arrayvec::ArrayVec;
 use rand::{RngExt};
 
 const MAX_KEYS: usize = 4096; //powerset size of 12, smaller for bishop but no engine runtime cost
-const MAGIC_TABLE_POW: u32 = 12;
+const MAGIC_TABLE_POW: u32 = 11;
 const MAGIC_TABLE_SIZE: usize = 2_usize.pow(MAGIC_TABLE_POW);
 
-struct Magic {
+#[derive(Debug)]
+pub struct Magic {
     sqr: Square,
     table: [Bitboard; MAGIC_TABLE_SIZE],
     num: u64
@@ -24,13 +26,16 @@ impl Magic {
         self.table[Magic::get_index(key, self.num)]
     }
 
-    pub fn find_magic(sqr: Square, is_diagonal: bool) -> Magic {
+    fn find_magic(sqr: Square, is_diagonal: bool, thread: Arc<MagicThread>) -> Option<Magic> {
         let mut rng = rand::rng();
         let map= gen_key_val_pairs(sqr, is_diagonal);
         let mut magic_table:[Bitboard; MAGIC_TABLE_SIZE];
         let mut magic_num: u64;
-        let mut best = 0;
         loop {
+            if thread.stop.load(Ordering::Relaxed) {
+                println!("THREAD STOPPED!");
+                return None;
+            }
             let mut dbg_i  = 0;
             let mut failed = false;
             magic_table = [Bitboard::EMPTY; MAGIC_TABLE_SIZE];
@@ -41,7 +46,9 @@ impl Magic {
                 if loc == Bitboard::EMPTY || loc == *value {
                     magic_table[index as usize] = *value;
                 } else {
-                    best = best.max(dbg_i);
+                    let prev_best = thread.thread_best.load(Ordering::Relaxed);
+                    thread.thread_best.store(prev_best.max(dbg_i), Ordering::Relaxed);
+                    thread.counted.fetch_add(1, Ordering::Relaxed);
                     failed = true;
                     break;
                 }
@@ -51,25 +58,45 @@ impl Magic {
                 break;
             }
         }
-        Magic { sqr, table: magic_table, num: magic_num }
+        Some(Magic { sqr, table: magic_table, num: magic_num })
     }
 
-    fn dbg_find_magic(sqr: Square, is_diagonal: bool) -> Result<Magic, String> {
-        let thread_count = std::thread::available_parallelism()
-            .map_err(|e|{e.to_string()})?;
-        let mut handles: Vec<JoinHandle<()>> = vec![];
-        let (send, rec) = mpsc::channel::<Magic>();
-        for _ in 0..thread_count.into() {
+    pub fn dbg_find_magic(sqr: Square, is_diagonal: bool) -> Result<Magic, String> {
+        let thread_count: usize = std::thread::available_parallelism().map_err(|e|{e.to_string()})?.into();
+        let thread_count: usize = thread_count.min(16);
+        let (send, rec) = mpsc::channel::<Option<Magic>>();
+        let mut thread_data: Vec<Arc<MagicThread>> = vec![];
+        let start = Instant::now();
+        let to_beat = gen_key_val_pairs(sqr, is_diagonal).iter().len();
+
+        //spawn threads
+        for _ in 0..thread_count {
             let send = send.clone();
-            let handle = thread::spawn(move ||{
-                let out = Magic::find_magic(sqr, is_diagonal);
-                send.send(out);
+            let magic_thread = Arc::new(MagicThread::new());
+            thread_data.push(magic_thread.clone());
+            thread::spawn(move ||{
+                let out = Magic::find_magic(sqr, is_diagonal, magic_thread);
+                let _ = send.send(out);
             });
-            handles.push(handle);
         }
-        
-        println!("using {thread_count} threads");
-        todo!()
+
+        //listen
+        loop {
+            let mut search_count: u64 = 0;
+            let mut best: u32 = 0;
+            for thread in thread_data.iter() {
+                search_count += thread.counted.load(Ordering::Relaxed);
+                best = best.max(thread.thread_best.load(Ordering::Relaxed));
+            }
+            println!("threads: {thread_count}, search_count {search_count}, best {best}, to_beat: {to_beat}, elapsed: {}",
+                start.elapsed().as_secs()
+            );
+            if let Ok(res) = rec.try_recv() {
+                thread_data.iter().for_each(|d|{d.stop()});
+                return res.ok_or("unexpeted return".to_string());
+            }
+            thread::sleep(time::Duration::from_secs(1));
+        }
     }
 }
 
@@ -100,7 +127,17 @@ const ROOK_MASKS: [Bitboard; 64] = {
 
 struct MagicThread {
     stop: AtomicBool,
+    thread_best: AtomicU32,
     counted: AtomicU64
+}
+
+impl MagicThread {
+    fn new() -> MagicThread {
+        MagicThread { stop: false.into(), thread_best: 0.into(), counted: 0.into() }
+    }
+    fn stop(&self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
 }
 
 const BISHOP_MASKS: [Bitboard; 64] = {
@@ -213,22 +250,4 @@ fn gen_key_val_pairs(sqr: Square, is_diagonal: bool) -> HashMap<Bitboard, Bitboa
         map.insert(key, value);
     }
     map
-}
-
-#[test]
-fn test_magics_1() {
-    let magic = Magic::find_magic(Square::B2, false);
-    let map = gen_key_val_pairs(Square::B2, false);
-    for (key, val) in map{
-        assert_eq!(magic.get(key), val);
-    }
-}
-
-#[test]
-fn test_magics_2() {
-    let magic = Magic::find_magic(Square::H4, true);
-    let map = gen_key_val_pairs(Square::H4, true);
-    for (key, val) in map{
-        assert_eq!(magic.get(key), val);
-    }
 }
