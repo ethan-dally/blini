@@ -93,7 +93,7 @@ impl Board {
 
     #[inline]
     pub fn all_pieces(&self) -> Bitboard {
-        self.colours[Colour::White] & self.colours[Colour::Black]
+        self.colours[Colour::White] | self.colours[Colour::Black]
     }
 
     #[inline]

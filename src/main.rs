@@ -5,8 +5,6 @@ pub mod common;
 
 fn main() {
     let x = magic_table();
-    println!("size: {}", x.size_of());
-    // let _ = FindMagic::find_all_magics();
 }
 
 //MASK - produces keys

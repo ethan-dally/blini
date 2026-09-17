@@ -1,395 +1,14 @@
 use core::time;
-use std::{collections::HashMap, num::NonZero, sync::{Arc, OnceLock, atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}, mpsc}, thread::{self, JoinHandle}, time::Instant};
+use std::{collections::HashMap, sync::{Arc, OnceLock, atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering}, mpsc}, thread::{self}, time::Instant};
 use crate::common::{bitboard::Bitboard, direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West}, file::File, rank::Rank, square::Square};
 use arrayvec::ArrayVec;
 use rand::{RngExt};
 
+static MAGIC_TABLE: OnceLock<MagicTable> = OnceLock::new();
+
 const ROOK_TABLE_SIZES: [usize; 64] = [14, 12, 12, 12, 12, 12, 12, 14, 12, 11, 11, 11, 11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 12, 11, 11, 11, 11, 11, 11, 12, 14, 12, 12, 12, 12, 12, 12, 14];
 const BISHOP_TABLE_SIZES: [usize; 64] = [6, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 7, 10, 10, 7, 5, 5, 5, 5, 7, 10, 10, 7, 5, 5, 5, 5, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, 5, 5, 5, 5, 6];
 const MAX_KEYS: usize = 4096;
-static MAGIC_TABLE: OnceLock<MagicTable> = OnceLock::new();
-
-pub fn magic_table() -> &'static MagicTable {
-    MAGIC_TABLE.get_or_init(||{
-        MagicTable::build(DIAGONAL_MAGICS, ORTHOGONAL_MAGICS)
-            .expect("failed to build magic tables")
-    })
-}
-
-fn get_magic_index(key: Bitboard, magic_num: u64, table_pow: usize) -> usize {
-    (key.0.wrapping_mul(magic_num) >> (64 - table_pow)) as usize
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-struct Magic {
-    offset: usize,
-    table_pow: usize,
-    num: u64
-}
-
-pub struct MagicTable {
-    orth_magics: [Magic; 64],
-    diag_magics: [Magic; 64],
-    orth_table: Box<[Bitboard]>,
-    diag_table: Box<[Bitboard]>,
-}
-
-impl MagicTable {
-    pub fn size_of(&self) -> usize {
-        (self.orth_table.len() + self.diag_table.len()) * size_of::<Bitboard>()
-    }
-    #[inline]
-    const fn orth_table_size() -> usize {
-        let mut total = 0;
-        let mut i = 0;
-        while i < 64 {
-            total += 2usize.pow(ROOK_TABLE_SIZES[i] as u32);
-            i += 1;
-        }
-        total
-    }
-
-    #[inline]
-    const fn diag_table_size() -> usize {
-        let mut total = 0;
-        let mut i = 0;
-        while i < 64 {
-            total += 2usize.pow(BISHOP_TABLE_SIZES[i] as u32);
-            i += 1;
-        }
-        total
-    }
-
-    #[inline]
-    pub fn get_orth(&self, board: Bitboard, sqr: Square) -> Bitboard {
-        let magic = self.orth_magics[sqr as usize];
-        let key = board & ROOK_MASKS[sqr as usize];
-        let index = get_magic_index(key, magic.num, magic.table_pow);
-        self.orth_table[magic.offset + index]
-    }
-
-    #[inline]
-    pub fn get_diag(&self, board: Bitboard, sqr: Square) -> Bitboard {
-        let magic = self.diag_magics[sqr as usize];
-        let key = board & BISHOP_MASKS[sqr as usize];
-        let index = get_magic_index(key, magic.num, magic.table_pow);
-        self.diag_table[magic.offset + index]
-    }
-
-    fn build(diag_vals: [u64; 64], orth_vals: [u64; 64]) -> Result<MagicTable, String> {
-        let mut orth_table: Box<[Bitboard]> = vec![Bitboard::EMPTY; MagicTable::orth_table_size()].into();
-        let mut diag_table: Box<[Bitboard]> = vec![Bitboard::EMPTY; MagicTable::diag_table_size()].into();
-        let mut orth_magics = [Magic::default(); 64];
-        let mut diag_magics = [Magic::default(); 64];
-        let mut orth_offset: usize = 0;
-        let mut diag_offset: usize = 0;
-        for sqr in Square::ALL {
-
-            //orth
-            let magic_num = orth_vals[sqr as usize];
-            let table_pow = ROOK_TABLE_SIZES[sqr as usize];
-            for (key, val) in gen_key_val_pairs(sqr, false) {
-                let index = get_magic_index(key, magic_num, table_pow);
-                if orth_table[index + orth_offset] != Bitboard::EMPTY && orth_table[index + orth_offset] != val {
-                    return Err(format!("incorrect magic orthogonal {sqr}"));
-                }
-                orth_table[index + orth_offset] = val;
-                orth_magics[sqr as usize] = Magic { offset: orth_offset, table_pow, num: magic_num};
-            }
-            orth_offset += 2usize.pow(table_pow as u32);
-
-            //diag
-            let magic_num = diag_vals[sqr as usize];
-            let table_pow = BISHOP_TABLE_SIZES[sqr as usize];
-            for (key, val) in gen_key_val_pairs(sqr, true) {
-                let index = get_magic_index(key, magic_num, table_pow);
-                if diag_table[index + diag_offset] != Bitboard::EMPTY && diag_table[index + diag_offset] != val {
-                    return Err(format!("incorrect magic diagonal {sqr}"));
-                }
-                diag_table[index + diag_offset] = val;
-                diag_magics[sqr as usize] = Magic { offset: diag_offset, table_pow, num: magic_num};
-            }
-            diag_offset += 2usize.pow(table_pow as u32);
-        }
-        Ok(MagicTable{orth_magics, orth_table, diag_magics, diag_table})
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct FindMagic {
-    sqr: Square,
-    is_diagonal: bool,
-    table_pow: usize,
-    table_size: usize,
-}
-
-impl FindMagic {
-    #[inline]
-    fn get_index(&self, key: Bitboard, magic_num: u64) -> usize {
-        get_magic_index(key, magic_num, self.table_pow)
-    }
-
-    fn find_magic_thread(&self, thread: Arc<ThreadData>) -> Option<u64> {
-        let mut rng = rand::rng();
-        let map= gen_key_val_pairs(self.sqr, self.is_diagonal);
-        let mut magic_table = vec![Bitboard::EMPTY; self.table_size];
-        let mut magic_num: u64;
-        loop {
-            if thread.stop.load(Ordering::Relaxed) {
-                return None;
-            }
-            let mut dbg_i  = 0;
-            let mut failed = false;
-            magic_table.fill(Bitboard::EMPTY);
-            magic_num = rng.random();
-            for (key,  value) in map.iter() {
-                let index = self.get_index(*key, magic_num);
-                let loc = magic_table[index as usize];
-                if loc == Bitboard::EMPTY || loc == *value {
-                    magic_table[index as usize] = *value;
-                } else {
-                    let prev_best = thread.thread_best.load(Ordering::Relaxed);
-                    thread.thread_best.store(prev_best.max(dbg_i), Ordering::Relaxed);
-                    thread.counted.fetch_add(1, Ordering::Relaxed);
-                    failed = true;
-                    break;
-                }
-                dbg_i += 1;
-            }
-            if !failed {
-                break;
-            }
-        }
-        Some(magic_num)
-    }
-
-    fn find_magic(self) -> Result<u64, String> {
-        let thread_count: usize = std::thread::available_parallelism().map_err(|e|{e.to_string()})?.into();
-        let thread_count: usize = thread_count.min(16);
-        let (send, rec) = mpsc::channel::<Option<u64>>();
-        let mut thread_data: Vec<Arc<ThreadData>> = vec![];
-        let start = Instant::now();
-        let to_beat = gen_key_val_pairs(self.sqr, self.is_diagonal).iter().len();
-
-        //spawn threads
-        for _ in 0..thread_count {
-            let send = send.clone();
-            let magic_thread = Arc::new(ThreadData::new());
-            thread_data.push(magic_thread.clone());
-            thread::spawn(move ||{
-                let out = self.find_magic_thread(magic_thread);
-                let _ = send.send(out);
-            });
-        }
-
-        //listen
-        loop {
-            let mut search_count: u64 = 0;
-            let mut best: u32 = 0;
-            for thread in thread_data.iter() {
-                search_count += thread.counted.load(Ordering::Relaxed);
-                best = best.max(thread.thread_best.load(Ordering::Relaxed));
-            }
-            println!("threads: {thread_count}, {}, size: {}, searched {search_count}, best {best}, to_beat: {to_beat}, elapsed: {}",
-                self.sqr,
-                match self.is_diagonal {
-                    true => "Diagonal",
-                    false => "Orthogonal"
-                },
-                start.elapsed().as_secs()
-            );
-            if let Ok(res) = rec.try_recv() {
-                thread_data.iter().for_each(|d|{d.stop()});
-                return res.ok_or("unexpeted return".to_string());
-            }
-            thread::sleep(time::Duration::from_secs(1));
-        }
-    }
-
-    fn new(sqr: Square, is_diagonal: bool) -> FindMagic {
-        let table_pow = match is_diagonal {
-            true => BISHOP_TABLE_SIZES[sqr as usize],
-            false => ROOK_TABLE_SIZES[sqr as usize]
-        };
-        let table_size = 2usize.pow(table_pow as u32);
-        FindMagic {sqr, is_diagonal, table_pow, table_size, }
-    }
-
-    pub fn find_all_magics() -> Result<(), String> {
-        let mut orth_list: Vec<u64> = vec![];
-        let mut diag_list: Vec<u64> = vec![];
-        for is_diagonal in [true, false] {
-            for sqr in Square::ALL {
-                let magic = FindMagic::new(sqr, is_diagonal);
-                let Ok(magic) = magic.find_magic() else {
-                    println!("find error");
-                    return Err(format!("find error"));
-                };
-                match is_diagonal {
-                    true => diag_list.push(magic),
-                    false => orth_list.push(magic),
-                }
-            }
-        }
-        println!("orth list: =========================");
-        orth_list.iter().for_each(|m|{println!("    {m},")});
-        println!("diag list: =========================");
-        diag_list.iter().for_each(|m|{println!("    {m},")});
-        Ok(())
-    }
-}
-
-struct ThreadData {
-    stop: AtomicBool,
-    thread_best: AtomicU32,
-    counted: AtomicU64
-}
-
-impl ThreadData {
-    fn new() -> ThreadData {
-        ThreadData { stop: false.into(), thread_best: 0.into(), counted: 0.into() }
-    }
-    fn stop(&self) {
-        self.stop.store(true, Ordering::Relaxed);
-    }
-}
-
-/*
-these masks GENERATE the key's for the magic
-*/
-const ROOK_MASKS: [Bitboard; 64] = {
-    let cutout_1 = 0xFFFFFFFFFFFFFF00u64;
-    let cutout_8 = 0x00FFFFFFFFFFFFFFu64;
-    let cutout_a = 0xFEFEFEFEFEFEFEFEu64;
-    let cutout_h = 0x7F7F7F7F7F7F7F7Fu64;
-    let mut masks = [Bitboard::EMPTY; 64];
-    let mut index = 0;
-    while index < 64 {
-        let sqr = Square::try_index(index).expect("unreachable");
-        let file_bb = sqr.file().to_bb().0;
-        let rank_bb = sqr.rank().to_bb().0;
-        let mut mask = file_bb ^ rank_bb;
-        if sqr.file() as u8 != File::A as u8 {mask &= cutout_a}
-        if sqr.file() as u8 != File::H as u8 {mask &= cutout_h}
-        if sqr.rank() as u8 != Rank::One as u8 {mask &= cutout_1}
-        if sqr.rank() as u8 != Rank::Eight as u8 {mask &= cutout_8}
-        masks[index as usize] = Bitboard(mask);
-        index += 1;
-    }
-    masks
-};
-
-const BISHOP_MASKS: [Bitboard; 64] = {
-    let cutout = 0x007E7E7E7E7E7E00u64;
-    let mut masks = [Bitboard::EMPTY; 64];
-    let mut index = 0;
-    while index < 64 {
-        let sqr = Square::try_index(index).expect("unreachable");
-        let diag = gen_diag_mask(sqr).0 & !sqr.to_bb().0 & cutout;
-        masks[index as usize] = Bitboard(diag);
-        index += 1;
-    }
-    masks
-};
-
-const fn gen_diag_mask(sqr: Square) -> Bitboard {
-    //slow, intended for only const use
-    let mut bb = sqr.to_bb().0;
-    let mut ne= 1;
-    let mut se= 1;
-    let mut sw= 1;
-    let mut nw= 1;
-    loop {
-        let next_ne = sqr.shift::<NorthEast>(ne);
-        let next_se = sqr.shift::<SouthEast>(se);
-        let next_sw = sqr.shift::<SouthWest>(sw);
-        let next_nw = sqr.shift::<NorthWest>(nw);
-        if let Some(next) = next_ne { bb |= next.to_bb().0; }
-        if let Some(next) = next_se { bb |= next.to_bb().0; }
-        if let Some(next) = next_sw { bb |= next.to_bb().0; }
-        if let Some(next) = next_nw { bb |= next.to_bb().0; }
-        ne += 1;
-        se += 1;
-        sw += 1;
-        nw += 1;
-        if next_ne.is_none() & next_se.is_none() & next_sw.is_none() & next_nw.is_none() {
-            break;
-        }
-    }
-    Bitboard(bb)
-}
-
-fn gen_rook_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
-    let mut keys: ArrayVec<Bitboard, MAX_KEYS> = ArrayVec::new();
-    let full_mask = ROOK_MASKS[sqr as usize].0;
-    let mut sub_mask: u64 = 0;
-    loop {
-        keys.push(Bitboard(sub_mask));
-        sub_mask = (sub_mask.wrapping_sub(full_mask)) & full_mask;
-        if sub_mask == 0 {
-            break;
-        }
-    }
-    keys
-}
-
-fn gen_bishop_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
-    let mut keys: ArrayVec<Bitboard, MAX_KEYS> = ArrayVec::new();
-    let full_mask = BISHOP_MASKS[sqr as usize].0;
-    let mut sub_mask: u64 = 0;
-    loop {
-        keys.push(Bitboard(sub_mask));
-        sub_mask = (sub_mask.wrapping_sub(full_mask)) & full_mask;
-        if sub_mask == 0 {
-            break;
-        }
-    }
-    keys
-}
-
-fn gen_key_val_pairs(sqr: Square, is_diagonal: bool) -> HashMap<Bitboard, Bitboard> {
-    /*
-    - suuper inefficient btw but it dosent matter
-    */
-    let dirs: [fn(Square, u8) -> Option<Square>; 4] = match is_diagonal {
-        true => [
-            Square::shift::<NorthEast>,
-            Square::shift::<SouthEast>,
-            Square::shift::<SouthWest>,
-            Square::shift::<NorthWest>,
-        ],
-        false => [
-            Square::shift::<North>,
-            Square::shift::<East>,
-            Square::shift::<South>,
-            Square::shift::<West>,
-        ]
-    };
-    let magic_keys = match is_diagonal {
-        true => gen_bishop_magic_keys(sqr),
-        false => gen_rook_magic_keys(sqr)
-    };
-
-    let mut map: HashMap<Bitboard, Bitboard> = HashMap::new();
-    for key in magic_keys {
-        let mut value = Bitboard::EMPTY;
-        for shift in dirs {
-            let mut amt = 1;
-            loop {
-                let Some(dest) = shift(sqr, amt) else {
-                    break;
-                };
-                value |= dest.to_bb();
-                if key.has(dest) {
-                    break;
-                }
-                amt += 1;
-            }
-        }
-        map.insert(key, value);
-    }
-    map
-}
 
 const DIAGONAL_MAGICS: [u64; 64] = [
     3508751241539745188,
@@ -525,20 +144,387 @@ const ORTHOGONAL_MAGICS: [u64; 64] = [
     12002096410175927254,
 ];
 
-// #[test]
-// fn test_magics() {
-//     let table = magic_table();
-//     for sqr in Square::ALL {
-//         for (key, val) in gen_key_val_pairs(sqr, false) {
-//             assert_eq!(table.get_orth(key, sqr), val);
-//         }
-//         for (key, val) in gen_key_val_pairs(sqr, true) {
-//             assert_eq!(table.get_diag(key, sqr), val);
-//         }
-//     }
-// }
+pub fn magic_table() -> &'static MagicTable {
+    MAGIC_TABLE.get_or_init(||{
+        MagicTable::build(DIAGONAL_MAGICS, ORTHOGONAL_MAGICS)
+            .expect("failed to build magic tables")
+    })
+}
 
-#[test]
+//Everything derived from this
+fn get_magic_index(key: Bitboard, magic_num: u64, table_pow: usize) -> usize {
+    (key.0.wrapping_mul(magic_num) >> (64 - table_pow)) as usize
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct Magic {
+    offset: usize,
+    table_pow: usize,
+    magic_num: u64
+}
+
+pub struct MagicTable {
+    orth_magics: [Magic; 64],
+    diag_magics: [Magic; 64],
+    orth_table: Box<[Bitboard]>,
+    diag_table: Box<[Bitboard]>,
+}
+
+impl MagicTable {
+
+    #[allow(dead_code)]
+    fn size_of(&self) -> usize {
+        (self.orth_table.len() + self.diag_table.len()) * size_of::<Bitboard>()
+    }
+
+    #[inline]
+    const fn orth_table_size() -> usize {
+        let mut total = 0;
+        let mut i = 0;
+        while i < 64 {
+            total += 2usize.pow(ROOK_TABLE_SIZES[i] as u32);
+            i += 1;
+        }
+        total
+    }
+
+    #[inline]
+    const fn diag_table_size() -> usize {
+        let mut total = 0;
+        let mut i = 0;
+        while i < 64 {
+            total += 2usize.pow(BISHOP_TABLE_SIZES[i] as u32);
+            i += 1;
+        }
+        total
+    }
+
+    #[inline]
+    pub fn get_orth(&self, board: Bitboard, sqr: Square) -> Bitboard {
+        let magic = self.orth_magics[sqr as usize];
+        let key = board & ROOK_MASKS[sqr as usize];
+        let index = get_magic_index(key, magic.magic_num, magic.table_pow);
+        self.orth_table[magic.offset + index]
+    }
+
+    #[inline]
+    pub fn get_diag(&self, board: Bitboard, sqr: Square) -> Bitboard {
+        let magic = self.diag_magics[sqr as usize];
+        let key = board & BISHOP_MASKS[sqr as usize];
+        let index = get_magic_index(key, magic.magic_num, magic.table_pow);
+        self.diag_table[magic.offset + index]
+    }
+
+    fn build(diag_vals: [u64; 64], orth_vals: [u64; 64]) -> Result<MagicTable, String> {
+        let mut orth_table: Box<[Bitboard]> = vec![Bitboard::EMPTY; MagicTable::orth_table_size()].into();
+        let mut diag_table: Box<[Bitboard]> = vec![Bitboard::EMPTY; MagicTable::diag_table_size()].into();
+        let mut orth_magics = [Magic::default(); 64];
+        let mut diag_magics = [Magic::default(); 64];
+        let mut orth_offset: usize = 0;
+        let mut diag_offset: usize = 0;
+        for sqr in Square::ALL {
+
+            //orth
+            let magic_num = orth_vals[sqr as usize];
+            let table_pow = ROOK_TABLE_SIZES[sqr as usize];
+            for (key, val) in gen_key_val_pairs(sqr, false) {
+                let index = get_magic_index(key, magic_num, table_pow);
+                if orth_table[index + orth_offset] != Bitboard::EMPTY && orth_table[index + orth_offset] != val {
+                    return Err(format!("incorrect magic orthogonal {sqr}"));
+                }
+                orth_table[index + orth_offset] = val;
+                orth_magics[sqr as usize] = Magic { offset: orth_offset, table_pow, magic_num};
+            }
+            orth_offset += 2usize.pow(table_pow as u32);
+
+            //diag
+            let magic_num = diag_vals[sqr as usize];
+            let table_pow = BISHOP_TABLE_SIZES[sqr as usize];
+            for (key, val) in gen_key_val_pairs(sqr, true) {
+                let index = get_magic_index(key, magic_num, table_pow);
+                if diag_table[index + diag_offset] != Bitboard::EMPTY && diag_table[index + diag_offset] != val {
+                    return Err(format!("incorrect magic diagonal {sqr}"));
+                }
+                diag_table[index + diag_offset] = val;
+                diag_magics[sqr as usize] = Magic { offset: diag_offset, table_pow, magic_num};
+            }
+            diag_offset += 2usize.pow(table_pow as u32);
+        }
+        Ok(MagicTable{orth_magics, orth_table, diag_magics, diag_table})
+    }
+}
+
+struct ThreadData {
+    stop: AtomicBool,
+    thread_best: AtomicU32,
+    counted: AtomicU64
+}
+
+impl ThreadData {
+    fn new() -> ThreadData {
+        ThreadData { stop: false.into(), thread_best: 0.into(), counted: 0.into() }
+    }
+    fn stop(&self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FindMagic {
+    sqr: Square,
+    is_diagonal: bool,
+    table_pow: usize,
+    table_size: usize,
+}
+
+impl FindMagic {
+    #[inline]
+    fn get_index(&self, key: Bitboard, magic_num: u64) -> usize {
+        get_magic_index(key, magic_num, self.table_pow)
+    }
+
+    fn find_magic_thread(&self, thread: Arc<ThreadData>) -> Option<u64> {
+        let mut rng = rand::rng();
+        let map= gen_key_val_pairs(self.sqr, self.is_diagonal);
+        let mut magic_table = vec![Bitboard::EMPTY; self.table_size];
+        let mut magic_num: u64;
+        loop {
+            if thread.stop.load(Ordering::Relaxed) {
+                return None;
+            }
+            let mut dbg_i  = 0;
+            let mut failed = false;
+            magic_table.fill(Bitboard::EMPTY);
+            magic_num = rng.random();
+            for (key,  value) in map.iter() {
+                let index = self.get_index(*key, magic_num);
+                let loc = magic_table[index as usize];
+                if loc == Bitboard::EMPTY || loc == *value {
+                    magic_table[index as usize] = *value;
+                } else {
+                    let prev_best = thread.thread_best.load(Ordering::Relaxed);
+                    thread.thread_best.store(prev_best.max(dbg_i), Ordering::Relaxed);
+                    thread.counted.fetch_add(1, Ordering::Relaxed);
+                    failed = true;
+                    break;
+                }
+                dbg_i += 1;
+            }
+            if !failed {
+                break;
+            }
+        }
+        Some(magic_num)
+    }
+
+    fn find_magic(self) -> Result<u64, String> {
+        let thread_count: usize = std::thread::available_parallelism().map_err(|e|{e.to_string()})?.into();
+        let thread_count: usize = thread_count.min(16);
+        let (send, rec) = mpsc::channel::<Option<u64>>();
+        let mut thread_data: Vec<Arc<ThreadData>> = vec![];
+        let start = Instant::now();
+        let to_beat = gen_key_val_pairs(self.sqr, self.is_diagonal).iter().len();
+
+        //spawn threads
+        for _ in 0..thread_count {
+            let send = send.clone();
+            let magic_thread = Arc::new(ThreadData::new());
+            thread_data.push(magic_thread.clone());
+            thread::spawn(move ||{
+                let out = self.find_magic_thread(magic_thread);
+                let _ = send.send(out);
+            });
+        }
+
+        //listen
+        loop {
+            let mut search_count: u64 = 0;
+            let mut best: u32 = 0;
+            for thread in thread_data.iter() {
+                search_count += thread.counted.load(Ordering::Relaxed);
+                best = best.max(thread.thread_best.load(Ordering::Relaxed));
+            }
+            println!("threads: {thread_count}, {}, size: {}, searched {search_count}, best {best}, to_beat: {to_beat}, elapsed: {}",
+                self.sqr,
+                match self.is_diagonal {
+                    true => "Diagonal",
+                    false => "Orthogonal"
+                },
+                start.elapsed().as_secs()
+            );
+            if let Ok(res) = rec.try_recv() {
+                thread_data.iter().for_each(|d|{d.stop()});
+                return res.ok_or("unexpeted return".to_string());
+            }
+            thread::sleep(time::Duration::from_secs(1));
+        }
+    }
+
+    fn new(sqr: Square, is_diagonal: bool) -> FindMagic {
+        let table_pow = match is_diagonal {
+            true => BISHOP_TABLE_SIZES[sqr as usize],
+            false => ROOK_TABLE_SIZES[sqr as usize]
+        };
+        let table_size = 2usize.pow(table_pow as u32);
+        FindMagic {sqr, is_diagonal, table_pow, table_size, }
+    }
+
+    pub fn find_all_magics() -> Result<(), String> {
+        let mut orth_list: Vec<u64> = vec![];
+        let mut diag_list: Vec<u64> = vec![];
+        for is_diagonal in [true, false] {
+            for sqr in Square::ALL {
+                let magic = FindMagic::new(sqr, is_diagonal);
+                let Ok(magic) = magic.find_magic() else {
+                    println!("find error");
+                    return Err(format!("find error"));
+                };
+                match is_diagonal {
+                    true => diag_list.push(magic),
+                    false => orth_list.push(magic),
+                }
+            }
+        }
+        println!("orth list: =========================");
+        orth_list.iter().for_each(|m|{println!("    {m},")});
+        println!("diag list: =========================");
+        diag_list.iter().for_each(|m|{println!("    {m},")});
+        Ok(())
+    }
+}
+
+const BISHOP_MASKS: [Bitboard; 64] = {
+    let cutout = 0x007E7E7E7E7E7E00u64;
+    let mut masks = [Bitboard::EMPTY; 64];
+    let mut index = 0;
+    while index < 64 {
+        let sqr = Square::try_index(index).expect("unreachable");
+        let diag = gen_diag_mask(sqr).0 & !sqr.to_bb().0 & cutout;
+        masks[index as usize] = Bitboard(diag);
+        index += 1;
+    }
+    masks
+};
+
+const ROOK_MASKS: [Bitboard; 64] = {
+    let cutout_1 = 0xFFFFFFFFFFFFFF00u64;
+    let cutout_8 = 0x00FFFFFFFFFFFFFFu64;
+    let cutout_a = 0xFEFEFEFEFEFEFEFEu64;
+    let cutout_h = 0x7F7F7F7F7F7F7F7Fu64;
+    let mut masks = [Bitboard::EMPTY; 64];
+    let mut index = 0;
+    while index < 64 {
+        let sqr = Square::try_index(index).expect("unreachable");
+        let file_bb = sqr.file().to_bb().0;
+        let rank_bb = sqr.rank().to_bb().0;
+        let mut mask = file_bb ^ rank_bb;
+        if sqr.file() as u8 != File::A as u8 {mask &= cutout_a}
+        if sqr.file() as u8 != File::H as u8 {mask &= cutout_h}
+        if sqr.rank() as u8 != Rank::One as u8 {mask &= cutout_1}
+        if sqr.rank() as u8 != Rank::Eight as u8 {mask &= cutout_8}
+        masks[index as usize] = Bitboard(mask);
+        index += 1;
+    }
+    masks
+};
+
+const fn gen_diag_mask(sqr: Square) -> Bitboard {
+    //slow, intended for only const use
+    let mut bb = sqr.to_bb().0;
+    let mut ne= 1;
+    let mut se= 1;
+    let mut sw= 1;
+    let mut nw= 1;
+    loop {
+        let next_ne = sqr.shift::<NorthEast>(ne);
+        let next_se = sqr.shift::<SouthEast>(se);
+        let next_sw = sqr.shift::<SouthWest>(sw);
+        let next_nw = sqr.shift::<NorthWest>(nw);
+        if let Some(next) = next_ne { bb |= next.to_bb().0; }
+        if let Some(next) = next_se { bb |= next.to_bb().0; }
+        if let Some(next) = next_sw { bb |= next.to_bb().0; }
+        if let Some(next) = next_nw { bb |= next.to_bb().0; }
+        ne += 1;
+        se += 1;
+        sw += 1;
+        nw += 1;
+        if next_ne.is_none() & next_se.is_none() & next_sw.is_none() & next_nw.is_none() {
+            break;
+        }
+    }
+    Bitboard(bb)
+}
+
+fn gen_rook_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
+    let mut keys: ArrayVec<Bitboard, MAX_KEYS> = ArrayVec::new();
+    let full_mask = ROOK_MASKS[sqr as usize].0;
+    let mut sub_mask: u64 = 0;
+    loop {
+        keys.push(Bitboard(sub_mask));
+        sub_mask = (sub_mask.wrapping_sub(full_mask)) & full_mask;
+        if sub_mask == 0 {
+            break;
+        }
+    }
+    keys
+}
+
+fn gen_bishop_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
+    let mut keys: ArrayVec<Bitboard, MAX_KEYS> = ArrayVec::new();
+    let full_mask = BISHOP_MASKS[sqr as usize].0;
+    let mut sub_mask: u64 = 0;
+    loop {
+        keys.push(Bitboard(sub_mask));
+        sub_mask = (sub_mask.wrapping_sub(full_mask)) & full_mask;
+        if sub_mask == 0 {
+            break;
+        }
+    }
+    keys
+}
+
+fn gen_key_val_pairs(sqr: Square, is_diagonal: bool) -> HashMap<Bitboard, Bitboard> {
+    let dirs: [fn(Square, u8) -> Option<Square>; 4] = match is_diagonal {
+        true => [
+            Square::shift::<NorthEast>,
+            Square::shift::<SouthEast>,
+            Square::shift::<SouthWest>,
+            Square::shift::<NorthWest>,
+        ],
+        false => [
+            Square::shift::<North>,
+            Square::shift::<East>,
+            Square::shift::<South>,
+            Square::shift::<West>,
+        ]
+    };
+    let magic_keys = match is_diagonal {
+        true => gen_bishop_magic_keys(sqr),
+        false => gen_rook_magic_keys(sqr)
+    };
+
+    let mut map: HashMap<Bitboard, Bitboard> = HashMap::new();
+    for key in magic_keys {
+        let mut value = Bitboard::EMPTY;
+        for shift in dirs {
+            let mut amt = 1;
+            loop {
+                let Some(dest) = shift(sqr, amt) else {
+                    break;
+                };
+                value |= dest.to_bb();
+                if key.has(dest) {
+                    break;
+                }
+                amt += 1;
+            }
+        }
+        map.insert(key, value);
+    }
+    map
+}
+
+#[allow(dead_code)]
 fn generate_table_size() {
     // pre size is size: 6291456
     // after size is:    1958912
@@ -562,5 +548,30 @@ fn generate_table_size() {
     }
     println!("diag: {:?}", diag);
     println!("orth: {:?}", orth);
-    todo!()
+}
+
+#[test]
+fn test_magics_with_keys() {
+    let table = magic_table();
+    for sqr in Square::ALL {
+        for (key, val) in gen_key_val_pairs(sqr, false) {
+            assert_eq!(table.get_orth(key, sqr), val);
+        }
+        for (key, val) in gen_key_val_pairs(sqr, true) {
+            assert_eq!(table.get_diag(key, sqr), val);
+        }
+    }
+}
+
+#[test]
+fn test_magics_with_board() {
+    use crate::board::board::Board;
+    let table = magic_table();
+    let board = Board::parse_fen("4k3/8/4p3/3B4/8/5n2/P7/4K2P w - - 0 1")
+        .map_err(|s| panic!("invalid fen as {s}"))
+        .unwrap();
+    assert_eq!(
+        table.get_diag(board.all_pieces(), Square::D5),
+        Bitboard(72642534561677568)
+    );
 }
