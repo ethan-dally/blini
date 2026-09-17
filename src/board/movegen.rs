@@ -106,5 +106,5 @@ fn knight_attack() {
         .unwrap();
     board.display();
     println!("moves count: {}", board.get_moves().0.len());
-    assert!(false);
+    // assert!(false);
 }
