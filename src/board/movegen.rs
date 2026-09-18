@@ -3,7 +3,7 @@ use crate::{
         board::Board,
         r#move::{Move, MoveList},
     }, common::{
-        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, magics::magic_table, masks::knight_mask, piece::Piece, rank::Rank,
+        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, magics::magic_table, masks::{king_mask, knight_mask}, piece::Piece, rank::Rank, square::Square,
     },
 };
 
@@ -17,6 +17,7 @@ impl Board {
         self.pawns(&mut move_list);
         self.knights(&mut move_list);
         self.sliders(&mut move_list);
+        self.king(&mut move_list);
         move_list
     }
 
@@ -133,7 +134,22 @@ impl Board {
 
     }
 
+    #[inline]
     fn king(&self, move_list: &mut MoveList) {
+        let us_king = 
+            self.pieces(Piece::King) & 
+            self.colours(self.stm());
+
+        debug_assert!(us_king.piece_count() == 1);
+        // SAFETY: Bitboard is u64 hence trailing_zeros max is 64
+        let src = Square::unchecked_index(us_king.0.trailing_zeros() as u8);
+        println!("king: \n{}", src.to_bb());
+        let king_moves = king_mask(src) & 
+            !self.colours(self.stm());
+        println!("king moves: \n{}", king_moves);
+        for dst in king_moves.iter() {
+            move_list.add(Move::new(src, dst));
+        }
 
     }
 }
@@ -181,6 +197,16 @@ fn rook_attack() {
 #[test]
 fn bishop_attack() {
     let board = Board::parse_fen("3k4/8/2p5/5P2/4B3/8/8/3K4 w - - 0 1")
+        .map_err(|s| panic!("invalid fen as {s}"))
+        .unwrap();
+    board.display();
+    println!("moves count: {}", board.get_moves().0.len());
+    // assert!(false);
+}
+
+#[test]
+fn king_attack() {
+    let board = Board::parse_fen("8/2k5/8/8/8/4r3/2PK4/8 w - - 0 1")
         .map_err(|s| panic!("invalid fen as {s}"))
         .unwrap();
     board.display();

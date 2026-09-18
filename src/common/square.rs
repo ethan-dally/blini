@@ -53,7 +53,7 @@ impl Square {
     }
 
     #[inline]
-    const fn unchecked_index(index: u8) -> Square {
+    pub const fn unchecked_index(index: u8) -> Square {
         unsafe { core::mem::transmute::<u8, Square>(index) }
     }
 

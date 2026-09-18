@@ -6,7 +6,7 @@ use crate::common::{
     square::Square,
 };
 use std::{
-    fmt::Display, ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not}, u64,
+    fmt::Display, ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -46,6 +46,11 @@ impl Bitboard {
     #[inline]
     pub const fn has(&self, sqr: Square) -> bool {
         sqr.to_bb().0 & self.0 != 0
+    }
+
+    #[inline]
+    pub const fn piece_count(self) -> u32 {
+        self.0.count_ones()
     }
 
     pub const EMPTY: Bitboard = Bitboard(0);
