@@ -277,6 +277,12 @@ impl MagicTable {
     }
 }
 
+/*
+    - Everything from here forward is used for finding magics rather 
+
+    - Hence not relevant to the direct running of the engine
+*/
+
 struct ThreadData {
     stop: AtomicBool,
     thread_best: AtomicU32,
@@ -311,31 +317,48 @@ impl FindMagic {
         let map= gen_key_val_pairs(self.sqr, self.is_diagonal);
         let mut magic_table = vec![Bitboard::EMPTY; self.table_size];
         let mut magic_num: u64;
+
         loop {
             if thread.stop.load(Ordering::Relaxed) {
                 return None;
             }
+
             let mut dbg_i  = 0;
             let mut failed = false;
+
             magic_table.fill(Bitboard::EMPTY);
             magic_num = rng.random();
+
             for (key,  value) in map.iter() {
+
                 let index = self.get_index(*key, magic_num);
                 let loc = magic_table[index as usize];
+
                 if loc == Bitboard::EMPTY || loc == *value {
                     magic_table[index as usize] = *value;
+
                 } else {
-                    let prev_best = thread.thread_best.load(Ordering::Relaxed);
-                    thread.thread_best.store(prev_best.max(dbg_i), Ordering::Relaxed);
-                    thread.counted.fetch_add(1, Ordering::Relaxed);
+
+                    let prev_best = thread.thread_best
+                        .load(Ordering::Relaxed);
+
+                    thread.thread_best
+                        .store(prev_best.max(dbg_i), Ordering::Relaxed);
+
+                    thread.counted
+                        .fetch_add(1, Ordering::Relaxed);
+
                     failed = true;
                     break;
                 }
+
                 dbg_i += 1;
             }
+
             if !failed {
                 break;
             }
+
         }
         Some(magic_num)
     }
@@ -343,6 +366,7 @@ impl FindMagic {
     fn find_magic(self) -> Result<u64> {
         let thread_count: usize = std::thread::available_parallelism()
             .map_err(|_|{eyre!("cant get avaliable threads")})?.into();
+
         let (
             send, 
             rec
@@ -356,13 +380,16 @@ impl FindMagic {
         spawn threads
         */
         for _ in 0..thread_count.min(16) {
+
             let send = send.clone();
             let magic_thread = Arc::new(ThreadData::new());
+
             thread_data.push(magic_thread.clone());
             thread::spawn(move ||{
                 let out = self.find_magic_thread(magic_thread);
                 let _ = send.send(out);
             });
+
         }
 
         /*
@@ -436,11 +463,14 @@ const BISHOP_MASKS: [Bitboard; 64] = {
     let cutout = 0x007E7E7E7E7E7E00u64;
     let mut masks = [Bitboard::EMPTY; 64];
     let mut index = 0;
+
     while index < 64 {
         let sqr = Square::try_index(index).expect("unreachable");
         let diag = gen_diag_mask(sqr).0 & !sqr.to_bb().0 & cutout;
+
         masks[index as usize] = Bitboard(diag);
         index += 1;
+
     }
     masks
 };
@@ -450,21 +480,26 @@ const ROOK_MASKS: [Bitboard; 64] = {
     let cutout_8 = 0x00FFFFFFFFFFFFFFu64;
     let cutout_a = 0xFEFEFEFEFEFEFEFEu64;
     let cutout_h = 0x7F7F7F7F7F7F7F7Fu64;
+
     let mut masks = [Bitboard::EMPTY; 64];
     let mut index = 0;
     while index < 64 {
+
         let sqr = Square::try_index(index).expect("unreachable");
         let file_bb = sqr.file().to_bb().0;
         let rank_bb = sqr.rank().to_bb().0;
         let mut mask = file_bb ^ rank_bb;
+
         if sqr.file() as u8 != File::A as u8 {mask &= cutout_a}
         if sqr.file() as u8 != File::H as u8 {mask &= cutout_h}
         if sqr.rank() as u8 != Rank::One as u8 {mask &= cutout_1}
         if sqr.rank() as u8 != Rank::Eight as u8 {mask &= cutout_8}
+
         masks[index as usize] = Bitboard(mask);
         index += 1;
     }
     masks
+    
 };
 
 const fn gen_diag_mask(sqr: Square) -> Bitboard {
@@ -498,12 +533,15 @@ fn gen_rook_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
     let mut keys: ArrayVec<Bitboard, MAX_KEYS> = ArrayVec::new();
     let full_mask = ROOK_MASKS[sqr as usize].0;
     let mut sub_mask: u64 = 0;
+
     loop {
         keys.push(Bitboard(sub_mask));
         sub_mask = (sub_mask.wrapping_sub(full_mask)) & full_mask;
+
         if sub_mask == 0 {
             break;
         }
+
     }
     keys
 }

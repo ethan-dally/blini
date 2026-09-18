@@ -3,7 +3,7 @@ use crate::{
         board::Board,
         r#move::{Move, MoveList},
     }, common::{
-        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, magics::magic_table, masks::knight_mask, piece::Piece, rank::Rank,
+        colour::Colour, direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, magics::magic_table, masks::knight_mask, piece::Piece, rank::Rank,
     },
 };
 
@@ -15,6 +15,7 @@ impl Board {
         */
         self.pawns(&mut move_list);
         self.knights(&mut move_list);
+        self.rooks(&mut move_list);
         move_list
     }
 
@@ -78,10 +79,24 @@ impl Board {
         }
     }
 
-    // #[inline]
-    // fn rooks(&self, move_list: &mut MoveList) {
-    //     let table = magic_table();
-    // }
+    #[inline]
+    fn rooks(&self, move_list: &mut MoveList) {
+
+        let table = magic_table();
+        let us_rooks = self.pieces(Piece::Rook) & self.colours(self.stm());
+
+        for src in us_rooks.iter() {
+
+            let rook_moves = table
+                .get_orth(self.all_pieces(), src) &
+                !self.colours(self.stm());
+
+            for dst in rook_moves.iter() {
+                move_list.add(Move::new(src, dst));
+            }
+        }
+    }
+
 }
 
 #[test]
