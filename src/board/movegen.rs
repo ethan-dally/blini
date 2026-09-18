@@ -3,7 +3,7 @@ use crate::{
         board::Board,
         r#move::{Move, MoveList},
     }, common::{
-        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, masks::knight_mask, piece::Piece, rank::Rank,
+        direction::{North, NorthEast, NorthWest, South, SouthEast, SouthWest}, magics::magic_table, masks::knight_mask, piece::Piece, rank::Rank,
     },
 };
 
@@ -20,10 +20,10 @@ impl Board {
 
     #[inline]
     fn pawns(&self, move_list: &mut MoveList) {
-        let friendly_pawns = self.pieces(Piece::Pawn) & self.colours(self.stm());
+        let us_pawns = self.pieces(Piece::Pawn) & self.colours(self.stm());
         //forward 1
         let pawns_forward_1 =
-            friendly_pawns.relative_shift::<North>(self.stm(), 1) & !self.all_pieces();
+            us_pawns.relative_shift::<North>(self.stm(), 1) & !self.all_pieces();
         for dst in pawns_forward_1.iter() {
             let Some(src) = dst.relative_shift::<South>(self.stm(), 1) else {
                 debug_assert!(false, "should be unreachable");
@@ -46,7 +46,7 @@ impl Board {
 
         //attack left
         let pawns_attack_left =
-            friendly_pawns.relative_shift::<NorthWest>(self.stm(), 1) & self.colours(!self.stm());
+            us_pawns.relative_shift::<NorthWest>(self.stm(), 1) & self.colours(!self.stm());
         for dst in pawns_attack_left.iter() {
             let Some(src) = dst.relative_shift::<SouthEast>(self.stm(), 1) else {
                 debug_assert!(false, "should be unreachable");
@@ -57,7 +57,7 @@ impl Board {
 
         //attack right
         let pawns_attack_right =
-            friendly_pawns.relative_shift::<NorthEast>(self.stm(), 1) & self.colours(!self.stm());
+            us_pawns.relative_shift::<NorthEast>(self.stm(), 1) & self.colours(!self.stm());
         for dst in pawns_attack_right.iter() {
             let Some(src) = dst.relative_shift::<SouthWest>(self.stm(), 1) else {
                 debug_assert!(false, "should be unreachable");
@@ -77,6 +77,11 @@ impl Board {
             }
         }
     }
+
+    // #[inline]
+    // fn rooks(&self, move_list: &mut MoveList) {
+    //     let table = magic_table();
+    // }
 }
 
 #[test]

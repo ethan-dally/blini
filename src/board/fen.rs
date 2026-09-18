@@ -2,40 +2,70 @@ use crate::{
     board::board::Board,
     common::{colour::Colour, file::File, piece::Piece, rank::Rank, square::Square},
 };
+use color_eyre::eyre::{OptionExt, Result, eyre};
 
 impl Board {
-    pub fn parse_fen(fen: &str) -> Result<Board, String> {
+    pub fn parse_fen(fen: &str) -> Result<Board> {
         let mut board = Board::default();
         let mut parts = fen.split_whitespace();
-        let pieces = parts.next().ok_or("invalid whitespace")?;
-        let stm = parts.next().ok_or("invalid whitespace")?;
-        let castling = parts.next().ok_or("invalid whitespace")?;
-        let en_passant = parts.next().ok_or("invalid whitespace")?;
-        let hmc = parts.next().ok_or("invalid whitespace")?;
-        let fmc = parts.next().ok_or("invalid whitespace")?;
+
+        let pieces = parts
+            .next()
+            .ok_or_else(|| eyre!("missing piece placement"))?;
+
+        let stm = parts
+            .next()
+            .ok_or_else(|| eyre!("missing side to move"))?;
+
+        let castling = parts
+            .next()
+            .ok_or_else(|| eyre!("missing castling rights"))?;
+
+        let en_passant = parts
+            .next()
+            .ok_or_else(|| eyre!("missing en passant square"))?;
+
+        let hmc = parts
+            .next()
+            .ok_or_else(|| eyre!("missing halfmove clock"))?;
+
+        let fmc = parts
+            .next()
+            .ok_or_else(|| eyre!("missing fullmove counter"))?;
+
         if parts.next().is_some() {
-            return Err("fen has too much whitespace".to_string());
+            return Err(eyre!("FEN has too many fields"));
         }
 
         /*
         pieces
         */
         for (rank, row) in pieces.split('/').enumerate() {
+
             let Some(rank) = Rank::try_index(7 - rank as u8) else {
-                return Err("fen has invalid ranks".to_string());
+                return Err(eyre!("FEN has invalid rank"));
             };
+
             let mut file_count: u8 = 0;
+
             for c in row.chars() {
+
                 if c.is_ascii_digit() {
-                    file_count += (c.to_digit(9).ok_or("invalid digit")?) as u8;
+                    file_count += (c
+                        .to_digit(9)
+                        .ok_or_else(||{eyre!("invalid digit '{c}'")})?
+                    ) as u8;
                 } else {
-                    let file = File::try_index(file_count).ok_or("invalid fen sum")?;
+                    let file = File::try_index(file_count)
+                        .ok_or_else(||{eyre!("invalid file index {file_count}")})?;
                     let sqr = Square::new(rank, file);
-                    let piece = Piece::try_from(c).map_err(|_| "invalid char")?;
+                    let piece = Piece::try_from(c)
+                        .map_err(|_|{eyre!("invalid piece char {c}")})?;
                     let colour = Colour::from(c.is_ascii_uppercase());
                     board.set_square(sqr, colour, piece);
                     file_count += 1;
                 }
+
             }
         }
 
@@ -43,18 +73,26 @@ impl Board {
         stm
         */
         if stm.len() != 1 {
-            return Err("fen stm too long".to_string());
+            return Err(eyre!("fen stm string leng is too long"));
         }
-        let stm: char = stm.chars().next().ok_or("unreachable")?;
-        let stm = Colour::try_from_char(stm).ok_or("invalid stm char")?;
+
+        let stm: char = stm
+            .chars()
+            .next()
+            .ok_or_eyre("unreachable")?;
+
+        let stm = Colour::try_from_char(stm)
+                .ok_or_eyre("invalid stm char")?;
+
         board.set_stm(stm);
 
         /*
         castling
         */
         if castling.len() > 4 {
-            return Err("fen castling string length too big".to_string());
+            return Err(eyre!("FEN castling string should be of size 4"));
         }
+
         if castling != "-" {
             for c in castling.chars() {
                 match c {
@@ -62,7 +100,7 @@ impl Board {
                     'Q' => board.set_castling(Colour::White, false, true),
                     'k' => board.set_castling(Colour::Black, true, true),
                     'q' => board.set_castling(Colour::Black, false, true),
-                    _ => return Err(format!("fen has incorrect char: {} in castling", c)),
+                    _ => return Err(eyre!("fen has incorrect char: {} in castling", c)),
                 }
             }
         }
@@ -72,25 +110,26 @@ impl Board {
         */
         if en_passant != "-" {
             let en_passant = Square::try_from_str(en_passant)
-                .ok_or(format!("invalid en_passant str {en_passant}"))?;
+                .ok_or(eyre!("invalid en_passant str {en_passant}"))?;
             board.set_en_passant(Some(en_passant));
         }
 
         /*
         half move clock
         */
-        let hmc = hmc.parse::<u8>().or(Err("hmc not a valid number"))?;
+        let hmc = hmc.parse::<u8>()
+            .or(Err(eyre!("FEN hmc '{hmc}' not a valid number")))?;
         if hmc > 50 {
-            return Err("fen hmc above 50".to_string());
+            return Err(eyre!("FEN hmc should be below 50"));
         }
         board.set_hmc(hmc);
 
         /*
         full move number
         */
-        let fmc = fmc.parse::<u32>().or(Err("fmc not a valid number"))?;
+        let fmc = fmc.parse::<u32>()
+            .or(Err(eyre!("fmc not a valid number")))?;
         board.set_fmn(fmc);
-
         Ok(board)
     }
 }

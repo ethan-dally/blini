@@ -1,38 +1,11 @@
-use crate::common::magics::{FindMagic, magic_table};
+use crate::common::magics::{magic_table};
+use color_eyre::Result;
 
 pub mod board;
 pub mod common;
 
-fn main() {
-    let x = magic_table();
+fn main() -> Result<()> {
+    color_eyre::install()?;
+    let _magic_table = magic_table();
+    Ok(())
 }
-
-//MASK - produces keys
-//  · · · · · · · ·
-//  · · · · · · X ·
-//  · X · · · X · ·
-//  · · X · X · · ·
-//  · · · B · · · ·
-//  · · X · X · · ·
-//  · X · · · X · ·
-//  · · · · · · · ·
-
-// KEYS
-//  · · · · · · · ·
-//  · · · · · · X ·
-//  · · · · · · · ·
-//  · · · · X · · ·
-//  · · · B · · · ·
-//  · · X · · · · ·
-//  · X · · · X · ·
-//  · · · · · · · ·
-
-// VALUE - attack positions
-//  · · · · · · · ·
-//  X · · · · · · ·
-//  · X · · · · · ·
-//  · · X · X · · ·
-//  · · · B · · · ·
-//  · · X · X · · ·
-//  · · · · · X · ·
-//  · · · · · · · ·
