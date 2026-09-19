@@ -45,6 +45,12 @@ impl Square {
     }
 
     #[inline]
+    pub const fn relative(self, colour: Colour) -> Square {
+        let rank = self.rank().relative_to(colour);
+        Square::new(rank, self.file())
+    }
+
+    #[inline]
     pub const fn try_index(index: u8) -> Option<Square> {
         if index > 0b00111_111 {
             return None;

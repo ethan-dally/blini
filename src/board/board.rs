@@ -3,14 +3,14 @@ use enum_map::EnumMap;
 
 #[derive(Debug, Default)]
 pub struct Board {
-    pieces: EnumMap<Piece, Bitboard>,
-    colours: EnumMap<Colour, Bitboard>,
-    mailbox: EnumMap<Square, Option<(Piece, Colour)>>,
-    stm: Colour,
-    castling: [bool; 4], //layout KQkq
-    en_passant: Option<Square>,
-    hmc: u8,
-    fmn: u32,
+    pub(super) pieces: EnumMap<Piece, Bitboard>,
+    pub(super) colours: EnumMap<Colour, Bitboard>,
+    pub(super) mailbox: EnumMap<Square, Option<(Piece, Colour)>>,
+    pub(super) stm: Colour,
+    pub(super) castling: [bool; 4],
+    pub(super) en_passant: Option<Square>,
+    pub(super) hmc: u8,
+    pub(super) fmn: u32,
 }
 
 impl Board {
@@ -36,18 +36,21 @@ impl Board {
         self.mailbox[sqr] = Some((piece, colour));
     }
 
+    /// assumption of piece existing, since used in make_move code
     #[inline]
-    pub fn set_en_passant(&mut self, en_passant: Option<Square>) {
-        self.en_passant = en_passant;
+    pub fn remove_piece(&mut self, sqr: Square) -> Piece {
+        let (piece, colour) = self.mailbox[sqr]
+            .take()
+            .expect("remove_piece called on empty square");
+        let bb = sqr.to_bb();
+        self.pieces[piece] ^= bb;
+        self.colours[colour] ^= bb;
+        return piece;
     }
 
     #[inline]
-    pub fn clear_square(&mut self, sqr: Square) {
-        if let Some((piece, colour)) = self.mailbox[sqr] {
-            self.pieces[piece] ^= sqr.to_bb();
-            self.colours[colour] ^= sqr.to_bb();
-            self.mailbox[sqr] = None;
-        }
+    pub fn set_en_passant(&mut self, en_passant: Option<Square>) {
+        self.en_passant = en_passant;
     }
 
     #[inline]
@@ -79,6 +82,18 @@ impl Board {
     #[inline]
     pub fn colours(&self, colour: Colour) -> Bitboard {
         self.colours[colour]
+    }
+
+    /// all the stm's pieces
+    #[inline]
+    pub fn us_pieces(&self) -> Bitboard {
+        self.colours[self.stm]
+    }
+
+    /// opposite side to current stm's pieces
+    #[inline]
+    pub fn them_pieces(&self) -> Bitboard {
+        self.colours[!self.stm]
     }
 
     #[inline]
