@@ -40,6 +40,8 @@ impl Board {
         /*
         pieces
         */
+        let mut white_king = 0;
+        let mut black_king = 0;
         for (rank, row) in pieces.split('/').enumerate() {
 
             let Some(rank) = Rank::try_index(7 - rank as u8) else {
@@ -62,11 +64,22 @@ impl Board {
                     let piece = Piece::try_from(c)
                         .map_err(|_|{eyre!("invalid piece char {c}")})?;
                     let colour = Colour::from(c.is_ascii_uppercase());
+                    if piece == Piece::King {
+                        white_king += (colour == Colour::White) as u8;
+                        black_king += (colour == Colour::Black) as u8;
+                    }
                     board.set_square(sqr, colour, piece);
                     file_count += 1;
                 }
-
             }
+        }
+        
+        if white_king != 1 || black_king != 1 {
+            return Err(eyre!(
+                "there should be one king on each side w: {} b: {}",
+                white_king,
+                black_king,
+            ));
         }
 
         /*

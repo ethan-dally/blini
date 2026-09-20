@@ -6,7 +6,7 @@ use crate::common::{
     square::Square,
 };
 use std::{
-    fmt::Display, ops::{BitAnd, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
+    fmt::Display, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -21,6 +21,11 @@ impl Bitboard {
     #[inline]
     pub const fn iter(self) -> BitboardIter {
         BitboardIter(self)
+    }
+
+    #[inline]
+    pub const fn count(self) -> u32 {
+        self.0.count_ones()
     }
 
     #[inline]
@@ -66,6 +71,12 @@ impl BitXorAssign for Bitboard {
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 |= rhs.0;
+    }
+}
+
+impl BitAndAssign for Bitboard {
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.0 &= rhs.0;
     }
 }
 

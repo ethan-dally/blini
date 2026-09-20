@@ -1,4 +1,4 @@
-use crate::{board::board::Board, common::{bitboard::Bitboard, colour::Colour, direction::{NorthEast, NorthWest, South}, magics::magic_table, masks::{king_mask, knight_mask}, piece::Piece, rank::Rank, square::Square}};
+use crate::{board::{board::Board, movegen::MoveList}, common::{bitboard::Bitboard, colour::Colour, direction::{NorthEast, NorthWest, South}, magics::magic_table, masks::{king_mask, knight_mask}, piece::Piece, rank::Rank, square::Square}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Move {
@@ -11,6 +11,19 @@ impl Move {
     #[inline]
     pub fn new(src: Square, dst: Square, flag: MoveFlag) -> Move {
         Move { src, dst, flag}
+    }
+
+    pub fn display(&self) {
+        println!("s: {}, d: {}, f: {:?}", self.src, self.dst, self.flag);
+    }
+}
+
+impl MoveList {
+    pub fn add(&mut self, mv: Move) {
+        self.0.push(mv);
+    }
+    pub fn display(&self) {
+        todo!("// TODO: make this count and summarise")
     }
 }
 

@@ -11,6 +11,43 @@ pub const fn king_mask(sqr: Square) -> Bitboard {
     KING_MASKS[sqr as usize]
 }
 
+#[inline]
+///NOTE: includes sqr2 in the between calc but not sqr1
+pub const fn between_mask(sqr1: Square, sqr2: Square) -> Bitboard {
+    BETWEEN_MASKS[sqr1 as usize * 64 + sqr2 as usize]
+}
+
+const BETWEEN_MASKS: [Bitboard; 4096] = {
+
+    macro_rules! fill_ray {
+        ($masks:ident, $src:ident, $dir:ty) => {
+            let mut step_mask: u64 = 0;
+            let mut step: u8 = 1;
+            while let Some(sqr2) = $src.shift::<$dir>(step) {
+                step_mask |= sqr2.to_bb().0;
+                $masks[$src as usize * 64 + sqr2 as usize] = Bitboard(step_mask);
+                step += 1;
+            }
+        };
+    }
+
+    let mut masks = [Bitboard::EMPTY; 4096];
+    let mut sqr1_idx = 0;
+    while sqr1_idx < 64 {
+        let sqr1 = Square::try_index(sqr1_idx).expect("unreachable");
+        fill_ray!(masks, sqr1, North);
+        fill_ray!(masks, sqr1, East);
+        fill_ray!(masks, sqr1, South);
+        fill_ray!(masks, sqr1, West);
+        fill_ray!(masks, sqr1, NorthEast);
+        fill_ray!(masks, sqr1, SouthEast);
+        fill_ray!(masks, sqr1, SouthWest);
+        fill_ray!(masks, sqr1, NorthWest);
+        sqr1_idx += 1;
+    }
+    masks
+};
+
 const KNIGHT_MASKS: [Bitboard; 64] = {
     let mut masks = [Bitboard::EMPTY; 64];
     let mut i = 0;
