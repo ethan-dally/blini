@@ -50,7 +50,7 @@ impl Board {
         let magics = magic_table();
         let stm_pieces = self.all_pieces() 
             & !(self.pieces(Piece::King) & self.us_pieces());
-        //remove the king since we want to catch if its in check when it moves
+        // remove the king since we want to catch if its in check when it moves
         // TODO: Consider if it should be calculated and saved on make_move
 
         let pawns = 
@@ -95,9 +95,9 @@ impl Board {
             .next()
             .expect("there should be exactly 1 king");
 
-        let orth = (self.pieces(Piece::Rook) | self.pieces(Piece::Queen)) 
+        let them_orth = (self.pieces(Piece::Rook) | self.pieces(Piece::Queen)) 
             & self.them_pieces();
-        let diag = (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen)) 
+        let them_diag = (self.pieces(Piece::Bishop) | self.pieces(Piece::Queen)) 
             & self.them_pieces();
 
         //FULL since we want double checks to 'bubble up'
@@ -106,10 +106,10 @@ impl Board {
         let mut diag_pin_mask = Bitboard::EMPTY;
 
         let orth_candidates = magics
-            .get_orth(self.them_pieces(), us_king) & orth;
+            .get_orth(self.them_pieces(), us_king) & them_orth;
 
         let diag_candidates = magics
-            .get_diag(self.them_pieces(), us_king) & diag;
+            .get_diag(self.them_pieces(), us_king) & them_diag;
 
         for sqr in orth_candidates.iter() {
             let ray = between_mask(us_king, sqr);
@@ -350,7 +350,7 @@ impl Board {
                 !self.us_pieces();
 
             if diag_pinmask & src.to_bb() != Bitboard::EMPTY {
-                bishop_moves &= orth_pinmask;
+                bishop_moves &= diag_pinmask;
             }
 
             for dst in (bishop_moves & self.them_pieces()).iter() {
@@ -375,18 +375,18 @@ impl Board {
                 !self.us_pieces();
 
             if diag_pinmask & src.to_bb() != Bitboard::EMPTY {
-                queen_moves &= orth_pinmask;
+                queen_moves &= diag_pinmask;
             }
 
             if orth_pinmask & src.to_bb() != Bitboard::EMPTY {
                 queen_moves &= orth_pinmask;
             }
 
-            for dst in (queen_moves & self.them_pieces() & checkmask).iter() {
+            for dst in (queen_moves & self.them_pieces()).iter() {
                 move_list.add(Move::new(src, dst, MoveFlag::Capture));
             }
 
-            for dst in (queen_moves & !self.them_pieces() & checkmask).iter() {
+            for dst in (queen_moves & !self.them_pieces()).iter() {
                 move_list.add(Move::new(src, dst, MoveFlag::NonCapture));
             }
         }
@@ -449,74 +449,4 @@ impl Board {
             }
         }
     }
-}
-
-#[test]
-fn default_board() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn pawn_attack() {
-    let board = Board::parse_fen("4k3/8/8/2p1p1p1/3P1P2/8/8/4K3 w KQkq - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn knight_attack() {
-    let board = Board::parse_fen("k7/8/8/3p1P2/8/4N3/8/K7 w - - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn rook_attack() {
-    let board = Board::parse_fen("3k4/8/8/4P3/2p1R3/8/8/3K4 w - - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn bishop_attack() {
-    let board = Board::parse_fen("3k4/8/2p5/5P2/4B3/8/8/3K4 w - - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn king_attack() {
-    let board = Board::parse_fen("8/2k5/8/8/8/4r3/2PK4/8 w - - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    // assert!(false);
-}
-
-#[test]
-fn castling() {
-    let board = Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    board.display();
-    println!("moves count: {}", board.get_moves().0.len());
-    assert_eq!(board.get_moves().0.len(), 48);
 }

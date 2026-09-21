@@ -1,10 +1,12 @@
-use crate::{board::{board::Board, movegen::MoveList}, common::{bitboard::Bitboard, colour::Colour, direction::{NorthEast, NorthWest, South}, magics::magic_table, masks::{king_mask, knight_mask}, piece::Piece, rank::Rank, square::Square}};
+use enum_map::Enum;
+
+use crate::{board::{board::Board, movegen::MoveList}, common::{bitboard::Bitboard, colour::Colour, direction::{NorthEast, NorthWest, South}, file::File, magics::magic_table, masks::{king_mask, knight_mask}, piece::Piece, rank::Rank, square::Square}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Move {
-    src: Square,
-    dst: Square,
-    flag: MoveFlag,
+    pub(super) src: Square,
+    pub(super) dst: Square,
+    pub(super) flag: MoveFlag,
 }
 
 impl Move {
@@ -19,16 +21,52 @@ impl Move {
 }
 
 impl MoveList {
+
     pub fn add(&mut self, mv: Move) {
         self.0.push(mv);
     }
+
     pub fn display(&self) {
-        todo!("// TODO: make this count and summarise")
+        let mut src_piece_array = [0u8; 64];
+        let mut dst_piece_array = [0u8; 64];
+
+        for mv in self.0.iter() {
+            src_piece_array[mv.src as usize] += 1;
+            dst_piece_array[mv.dst as usize] += 1;
+        }
+
+        println!("src: \n");
+        for rank in Rank::ALL.iter().rev() {
+            for file in File::ALL {
+                let sqr =  Square::new(*rank, file);
+                let amt = src_piece_array[sqr as usize];
+                match amt {
+                    0 => print!("· "),
+                    _ => print!("{amt} "),
+                }
+            }
+            println!("");
+        }
+
+        println!("\ndst: \n");
+        for rank in Rank::ALL.iter().rev() {
+            for file in File::ALL {
+                let sqr =  Square::new(*rank, file);
+                let amt = dst_piece_array[sqr as usize];
+                match amt {
+                    0 => print!("· "),
+                    _ => print!("{amt} "),
+                }
+            }
+            println!("");
+        }
+
+        println!("count: {}", self.0.len())
     }
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Enum)]
 pub enum MoveFlag {
     NonCapture,
     PawnDouble,
@@ -161,6 +199,7 @@ impl Board {
                 self.set_square(rook_dst, self.stm, Piece::Rook);
             },
             MoveFlag::EnPassant => {
+                // self.hmc = 0;
                 let file = mv.dst.file();
                 let rank = Rank::Five.relative_to(self.stm);
                 self.remove_piece(Square::new(rank, file));
@@ -169,6 +208,7 @@ impl Board {
             MoveFlag::CapturePromotionBishop |
             MoveFlag::CapturePromotionQueen |
             MoveFlag::CapturePromotionRook => {
+                self.hmc = 0;
                 self.set_square(mv.dst, self.stm, mv.flag.piece());
             },
             MoveFlag::PromotionKnight |
