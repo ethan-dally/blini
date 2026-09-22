@@ -5,6 +5,7 @@ use color_eyre::eyre::{OptionExt, Result, eyre};
 
 impl Board {
     pub fn parse_fen(fen: &str) -> Result<Board> {
+
         let mut board = Board::default();
         let mut parts = fen.split_whitespace();
 

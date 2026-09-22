@@ -7,3 +7,4 @@ pub mod rank;
 pub mod square;
 pub mod masks;
 pub mod magics;
+pub mod r#move;

@@ -90,13 +90,11 @@ impl Board {
         self.colours[colour]
     }
 
-    /// all the stm's pieces
     #[inline]
     pub fn us_pieces(&self) -> Bitboard {
         self.colours[self.stm]
     }
 
-    /// opposite side to current stm's pieces
     #[inline]
     pub fn them_pieces(&self) -> Bitboard {
         self.colours[!self.stm]

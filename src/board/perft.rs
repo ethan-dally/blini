@@ -1,31 +1,9 @@
 use enum_map::{Enum, EnumMap};
 
-use crate::board::{board::Board, r#move::{Move, MoveFlag}};
+use crate::{board::board::Board, common::r#move::MoveFlag};
 
 #[derive(Debug, Default)]
-struct FlagsCount(EnumMap<MoveFlag, u32>);
-
-impl FlagsCount {
-    fn display(&self) {
-        println!(
-            "NonCapture: {}, PawnDouble: {}, CastleShort: {}, CastleLong: {}, \
-             Promotion: {}, Capture: {}, EnPassant: {}",
-            self.0[MoveFlag::NonCapture],
-            self.0[MoveFlag::PawnDouble],
-            self.0[MoveFlag::CastleShort],
-            self.0[MoveFlag::CastleLong],
-
-            self.0[MoveFlag::PromotionQueen]
-                + self.0[MoveFlag::PromotionRook]
-                + self.0[MoveFlag::PromotionBishop]
-                + self.0[MoveFlag::PromotionKnight],
-
-            self.0[MoveFlag::Capture],
-
-            self.0[MoveFlag::EnPassant],
-        );
-    }
-}
+pub(super) struct FlagsCount(pub EnumMap<MoveFlag, u32>);
 
 impl FlagsCount {
     #[inline]
@@ -43,17 +21,21 @@ impl FlagsCount {
 
 impl Board {
     fn perft(self, depth: u8) -> (u64, FlagsCount) {
+
         let move_list = self.get_moves();
+
         if depth == 0 {
             let count = move_list.0.iter().len() as u64;
             let mut move_flags = FlagsCount::default();
             for mv in move_list {
-                move_flags.add(mv.flag);
+                move_flags.add(mv.flag());
             }
             return (count, move_flags);
         }
+
         let mut count = 0;
         let mut flags_count = FlagsCount::default();
+
         for mv in move_list {
             let mut next = self.clone();
             next.do_move(mv);
@@ -154,7 +136,6 @@ fn kiwipete_4() {
     perft.1.display();
     println!("total: {}", perft.0);
     assert_eq!(perft.0, 4085603);
-    assert!(false)
 }
 
 //EDP tests

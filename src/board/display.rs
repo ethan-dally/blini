@@ -1,10 +1,6 @@
 use crate::{
-    board::board::Board,
-    common::{
-        colour::Colour,
-        file::File,
-        rank::Rank,
-        square::Square,
+    board::{board::Board, perft::FlagsCount}, common::{
+        colour::Colour, file::File, r#move::MoveFlag, rank::Rank, square::Square,
     },
 };
 use std::fmt::Display;
@@ -45,5 +41,27 @@ impl Display for Board {
             }
         }
         writeln!(f, "╚═════╧═════╧═════╧═════╧═════╧═════╧═════╧═════╝")
+    }
+}
+
+impl FlagsCount {
+    pub fn display(&self) {
+        println!(
+            "NonCapture: {}, PawnDouble: {}, CastleShort: {}, CastleLong: {}, \
+             Promotion: {}, Capture: {}, EnPassant: {}",
+            self.0[MoveFlag::NonCapture],
+            self.0[MoveFlag::PawnDouble],
+            self.0[MoveFlag::CastleShort],
+            self.0[MoveFlag::CastleLong],
+
+            self.0[MoveFlag::PromotionQueen]
+                + self.0[MoveFlag::PromotionRook]
+                + self.0[MoveFlag::PromotionBishop]
+                + self.0[MoveFlag::PromotionKnight],
+
+            self.0[MoveFlag::Capture],
+
+            self.0[MoveFlag::EnPassant],
+        );
     }
 }

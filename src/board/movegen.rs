@@ -1,26 +1,8 @@
-use arrayvec::ArrayVec;
-
 use crate::{
-    board::{
-        board::Board, r#move::{Move, MoveFlag},
-    }, common::{
-        bitboard::Bitboard, colour::Colour, direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West}, file::File::F, magics::{self, magic_table}, masks::{between_mask, king_mask, knight_mask}, piece::{self, Piece::{self, Rook}}, rank::Rank, square::Square,
+    board::board::Board, common::{
+        bitboard::Bitboard, colour::Colour, direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West}, magics::{magic_table}, masks::{between_mask, king_mask, knight_mask}, r#move::{Move, MoveFlag, MoveList}, piece::{Piece::{self}}, rank::Rank, square::Square,
     },
 };
-
-const MAX_MOVES: usize = 218;
-
-#[derive(Debug, Clone, Default)]
-pub struct MoveList(pub ArrayVec<Move, MAX_MOVES>);
-
-impl IntoIterator for MoveList {
-    type Item = Move;
-    type IntoIter = arrayvec::IntoIter<Move, MAX_MOVES>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
 
 impl Board {
 
@@ -31,10 +13,6 @@ impl Board {
             orth_pin_mask, 
             diag_pin_mask
         ) = self.check_and_pin_masks();
-
-        println!("checkmask \n{}", checkmask);
-        println!("banned \n{}", banned);
-        println!("orth pins \n{orth_pin_mask}");
 
         let mut move_list = MoveList::default();
         self.pawns(&mut move_list, checkmask, orth_pin_mask, diag_pin_mask);
@@ -57,7 +35,8 @@ impl Board {
         let stm_pieces = self.all_pieces() 
             & !(self.pieces(Piece::King) & self.us_pieces());
         // remove the king since we want to catch if its in check when it moves
-        // TODO: Consider if it should be calculated and saved on make_move
+        // TODO: Consider if it should be calculated and 
+        // saved earlier into the board on make_move for eval
 
         let pawns = 
             self.pieces(Piece::Pawn)
@@ -471,8 +450,8 @@ impl Board {
         &self, 
         move_list: &mut MoveList, 
         checkmask: Bitboard,
-        orth_pinmask: Bitboard,
-        diag_pinmask: Bitboard,
+        orth_pin_mask: Bitboard,
+        diag_pin_mask: Bitboard,
     ) {
 
         let table = magic_table();
@@ -483,7 +462,7 @@ impl Board {
         let us_rooks = 
             self.pieces(Piece::Rook) 
             & self.us_pieces()
-            & !diag_pinmask;
+            & !diag_pin_mask;
 
         for src in us_rooks.iter() {
 
@@ -492,8 +471,8 @@ impl Board {
                 & checkmask
                 & !self.us_pieces();
 
-            if orth_pinmask & src.to_bb() != Bitboard::EMPTY {
-                rook_moves &= orth_pinmask;
+            if orth_pin_mask & src.to_bb() != Bitboard::EMPTY {
+                rook_moves &= orth_pin_mask;
             }
 
             for dst in (rook_moves & self.them_pieces()).iter() {
@@ -511,7 +490,7 @@ impl Board {
         let us_bishops = 
             self.pieces(Piece::Bishop) 
             & self.us_pieces()
-            & !orth_pinmask;
+            & !orth_pin_mask;
 
         for src in us_bishops.iter() {
 
@@ -520,8 +499,8 @@ impl Board {
                 checkmask &
                 !self.us_pieces();
 
-            if diag_pinmask & src.to_bb() != Bitboard::EMPTY {
-                bishop_moves &= diag_pinmask;
+            if diag_pin_mask & src.to_bb() != Bitboard::EMPTY {
+                bishop_moves &= diag_pin_mask;
             }
 
             for dst in (bishop_moves & self.them_pieces()).iter() {
@@ -545,12 +524,12 @@ impl Board {
                 checkmask &
                 !self.us_pieces();
 
-            if diag_pinmask & src.to_bb() != Bitboard::EMPTY {
-                queen_moves &= diag_pinmask;
+            if diag_pin_mask & src.to_bb() != Bitboard::EMPTY {
+                queen_moves &= diag_pin_mask;
             }
 
-            if orth_pinmask & src.to_bb() != Bitboard::EMPTY {
-                queen_moves &= orth_pinmask;
+            if orth_pin_mask & src.to_bb() != Bitboard::EMPTY {
+                queen_moves &= orth_pin_mask;
             }
 
             for dst in (queen_moves & self.them_pieces()).iter() {
