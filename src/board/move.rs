@@ -1,10 +1,17 @@
-use crate::{board::board::Board, common::{colour::Colour, r#move::{Move, MoveFlag}, piece::Piece, rank::Rank, square::Square}};
+use crate::{
+    board::board::Board,
+    common::{
+        colour::Colour,
+        r#move::{Move, MoveFlag},
+        piece::Piece,
+        rank::Rank,
+        square::Square,
+    },
+};
 
 impl Board {
-
     #[inline]
     fn remove_castling_rights(&mut self, mv: Move, moved_piece: Piece) {
-
         if moved_piece == Piece::King {
             self.set_castling(self.stm, true, false);
             self.set_castling(self.stm, false, false);
@@ -40,12 +47,10 @@ impl Board {
         }
 
         match mv.flag() {
-            MoveFlag::NonCapture => {
-
-            },
+            MoveFlag::NonCapture => {}
             MoveFlag::Capture => {
                 self.hmc = 0;
-            },
+            }
             MoveFlag::PawnDouble => {
                 self.set_en_passant(Some(mv.dst()));
             }
@@ -54,30 +59,30 @@ impl Board {
                 let rook_dst = Square::D1.relative(self.stm);
                 self.remove_piece(rook_src);
                 self.set_square(rook_dst, self.stm, Piece::Rook);
-            },
+            }
             MoveFlag::CastleShort => {
                 let rook_src = Square::H1.relative(self.stm);
                 let rook_dst = Square::F1.relative(self.stm);
                 self.remove_piece(rook_src);
                 self.set_square(rook_dst, self.stm, Piece::Rook);
-            },
+            }
             MoveFlag::EnPassant => {
                 // self.hmc = 0;
                 let file = mv.dst().file();
                 let rank = Rank::Five.relative_to(self.stm);
                 self.remove_piece(Square::new(rank, file));
-            },
-            MoveFlag::CapturePromotionKnight |
-            MoveFlag::CapturePromotionBishop |
-            MoveFlag::CapturePromotionQueen |
-            MoveFlag::CapturePromotionRook => {
+            }
+            MoveFlag::CapturePromotionKnight
+            | MoveFlag::CapturePromotionBishop
+            | MoveFlag::CapturePromotionQueen
+            | MoveFlag::CapturePromotionRook => {
                 self.hmc = 0;
                 self.set_square(mv.dst(), self.stm, mv.flag().piece());
-            },
-            MoveFlag::PromotionKnight |
-            MoveFlag::PromotionBishop |
-            MoveFlag::PromotionQueen |
-            MoveFlag::PromotionRook => {
+            }
+            MoveFlag::PromotionKnight
+            | MoveFlag::PromotionBishop
+            | MoveFlag::PromotionQueen
+            | MoveFlag::PromotionRook => {
                 self.set_square(mv.dst(), self.stm, mv.flag().piece());
             }
         }

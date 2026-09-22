@@ -6,7 +6,8 @@ use crate::common::{
     square::Square,
 };
 use std::{
-    fmt::Display, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
+    fmt::Display,
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -144,7 +145,7 @@ impl Iterator for BitboardIter {
 
 #[test]
 fn shift() {
-    use crate::common::direction::{East, West, South, North, NorthEast};
+    use crate::common::direction::{East, North, NorthEast, South, West};
     //dirs
     assert_eq!(Square::A1.to_bb().shift::<East>(1), Square::B1.to_bb());
     assert_eq!(Square::C1.to_bb().shift::<West>(2), Square::A1.to_bb());

@@ -1,4 +1,4 @@
-use crate::common::magics::{magic_table};
+use crate::common::magics::magic_table;
 use color_eyre::Result;
 
 pub mod board;

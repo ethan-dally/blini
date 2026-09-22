@@ -1,6 +1,6 @@
+use crate::common::{file::File, piece::Piece, rank::Rank, square::Square};
 use arrayvec::ArrayVec;
 use enum_map::Enum;
-use crate::{common::{file::File, piece::Piece, rank::Rank, square::Square}};
 
 const MAX_MOVES: usize = 218;
 
@@ -36,7 +36,7 @@ impl MoveFlag {
             MoveFlag::PromotionRook => Piece::Rook,
             MoveFlag::PromotionBishop => Piece::Bishop,
             MoveFlag::PromotionKnight => Piece::Knight,
-            _ => unreachable!("shouldnt be called of flag {:?}", self)
+            _ => unreachable!("shouldnt be called of flag {:?}", self),
         }
     }
 }
@@ -51,7 +51,7 @@ pub struct Move {
 impl Move {
     #[inline]
     pub fn new(src: Square, dst: Square, flag: MoveFlag) -> Move {
-        Move { src, dst, flag}
+        Move { src, dst, flag }
     }
 
     pub fn display(&self) {
@@ -100,7 +100,7 @@ impl MoveList {
         println!("src: \n");
         for rank in Rank::ALL.iter().rev() {
             for file in File::ALL {
-                let sqr =  Square::new(*rank, file);
+                let sqr = Square::new(*rank, file);
                 let amt = src_piece_array[sqr as usize];
                 match amt {
                     0 => print!("· "),
@@ -113,7 +113,7 @@ impl MoveList {
         println!("\ndst: \n");
         for rank in Rank::ALL.iter().rev() {
             for file in File::ALL {
-                let sqr =  Square::new(*rank, file);
+                let sqr = Square::new(*rank, file);
                 let amt = dst_piece_array[sqr as usize];
                 match amt {
                     0 => print!("· "),

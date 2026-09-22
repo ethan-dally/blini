@@ -1,11 +1,13 @@
 use crate::{
-    board::board::Board, common::{colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square},
+    board::board::Board,
+    common::{
+        colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square,
+    },
 };
 use color_eyre::eyre::{OptionExt, Result, eyre};
 
 impl Board {
     pub fn parse_fen(fen: &str) -> Result<Board> {
-
         let mut board = Board::default();
         let mut parts = fen.split_whitespace();
 
@@ -13,9 +15,7 @@ impl Board {
             .next()
             .ok_or_else(|| eyre!("missing piece placement"))?;
 
-        let stm = parts
-            .next()
-            .ok_or_else(|| eyre!("missing side to move"))?;
+        let stm = parts.next().ok_or_else(|| eyre!("missing side to move"))?;
 
         let castling = parts
             .next()
@@ -43,7 +43,6 @@ impl Board {
         let mut white_king = 0;
         let mut black_king = 0;
         for (rank, row) in pieces.split('/').enumerate() {
-
             let Some(rank) = Rank::try_index(7 - rank as u8) else {
                 return Err(eyre!("FEN has invalid rank"));
             };
@@ -51,18 +50,14 @@ impl Board {
             let mut file_count: u8 = 0;
 
             for c in row.chars() {
-
                 if c.is_ascii_digit() {
-                    file_count += (c
-                        .to_digit(9)
-                        .ok_or_else(||{eyre!("invalid digit '{c}'")})?
-                    ) as u8;
+                    file_count +=
+                        (c.to_digit(9).ok_or_else(|| eyre!("invalid digit '{c}'"))?) as u8;
                 } else {
                     let file = File::try_index(file_count)
-                        .ok_or_else(||{eyre!("invalid file index {file_count}")})?;
+                        .ok_or_else(|| eyre!("invalid file index {file_count}"))?;
                     let sqr = Square::new(rank, file);
-                    let piece = Piece::try_from(c)
-                        .map_err(|_|{eyre!("invalid piece char {c}")})?;
+                    let piece = Piece::try_from(c).map_err(|_| eyre!("invalid piece char {c}"))?;
                     let colour = Colour::from(c.is_ascii_uppercase());
                     if piece == Piece::King {
                         white_king += (colour == Colour::White) as u8;
@@ -73,7 +68,7 @@ impl Board {
                 }
             }
         }
-        
+
         if white_king != 1 || black_king != 1 {
             return Err(eyre!(
                 "there should be one king on each side w: {} b: {}",
@@ -89,13 +84,9 @@ impl Board {
             return Err(eyre!("fen stm string leng is too long"));
         }
 
-        let stm: char = stm
-            .chars()
-            .next()
-            .ok_or_eyre("unreachable")?;
+        let stm: char = stm.chars().next().ok_or_eyre("unreachable")?;
 
-        let stm = Colour::try_from_char(stm)
-                .ok_or_eyre("invalid stm char")?;
+        let stm = Colour::try_from_char(stm).ok_or_eyre("invalid stm char")?;
 
         board.set_stm(stm);
 
@@ -124,7 +115,8 @@ impl Board {
         if en_passant != "-" {
             let en_passant = Square::try_from_str(en_passant)
                 .ok_or(eyre!("invalid en_passant str {en_passant}"))?;
-            let dst = en_passant.relative_shift::<South>(stm, 1)
+            let dst = en_passant
+                .relative_shift::<South>(stm, 1)
                 .ok_or_eyre("invalid en passant sqr")?;
             board.set_en_passant(Some(dst));
         }
@@ -132,7 +124,8 @@ impl Board {
         /*
         half move clock
         */
-        let hmc = hmc.parse::<u8>()
+        let hmc = hmc
+            .parse::<u8>()
             .or(Err(eyre!("FEN hmc '{hmc}' not a valid number")))?;
         if hmc > 50 {
             return Err(eyre!("FEN hmc should be below 50"));
@@ -142,7 +135,8 @@ impl Board {
         /*
         full move number
         */
-        let fmc = fmc.parse::<u32>()
+        let fmc = fmc
+            .parse::<u32>()
             .or(Err(eyre!("fmc not a valid number")))?;
         board.set_fmn(fmc);
         Ok(board)

@@ -1,7 +1,6 @@
 use crate::{
-    board::{board::Board, perft::FlagsCount}, common::{
-        colour::Colour, file::File, r#move::MoveFlag, rank::Rank, square::Square,
-    },
+    board::{board::Board, perft::FlagsCount},
+    common::{colour::Colour, file::File, r#move::MoveFlag, rank::Rank, square::Square},
 };
 use std::fmt::Display;
 
@@ -53,14 +52,11 @@ impl FlagsCount {
             self.0[MoveFlag::PawnDouble],
             self.0[MoveFlag::CastleShort],
             self.0[MoveFlag::CastleLong],
-
             self.0[MoveFlag::PromotionQueen]
                 + self.0[MoveFlag::PromotionRook]
                 + self.0[MoveFlag::PromotionBishop]
                 + self.0[MoveFlag::PromotionKnight],
-
             self.0[MoveFlag::Capture],
-
             self.0[MoveFlag::EnPassant],
         );
     }

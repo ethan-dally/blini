@@ -39,7 +39,7 @@ impl Board {
         let bb = sqr.to_bb();
         self.pieces[piece] |= bb;
         self.colours[colour] |= bb;
-        self.mailbox[sqr] = Some((piece, colour)); 
+        self.mailbox[sqr] = Some((piece, colour));
     }
 
     /// assumption of piece existing, since used in make_move code

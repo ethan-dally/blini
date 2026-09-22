@@ -1,5 +1,10 @@
-use  crate::common::direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West};
-use crate::common::{bitboard::{Bitboard}, square::Square::{self}};
+use crate::common::direction::{
+    East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West,
+};
+use crate::common::{
+    bitboard::Bitboard,
+    square::Square::{self},
+};
 
 #[inline]
 pub const fn knight_mask(sqr: Square) -> Bitboard {
@@ -17,8 +22,7 @@ pub const fn between_mask(sqr1: Square, sqr2: Square) -> Bitboard {
     BETWEEN_MASKS[sqr1 as usize * 64 + sqr2 as usize]
 }
 
-const BETWEEN_MASKS: [Bitboard; 4096] = {
-
+static BETWEEN_MASKS: [Bitboard; 4096] = {
     macro_rules! fill_ray {
         ($masks:ident, $src:ident, $dir:ty) => {
             let mut step_mask: u64 = 0;
@@ -48,7 +52,7 @@ const BETWEEN_MASKS: [Bitboard; 4096] = {
     masks
 };
 
-const KNIGHT_MASKS: [Bitboard; 64] = {
+static KNIGHT_MASKS: [Bitboard; 64] = {
     let mut masks = [Bitboard::EMPTY; 64];
     let mut i = 0;
     while i < 64 {
@@ -59,7 +63,7 @@ const KNIGHT_MASKS: [Bitboard; 64] = {
     masks
 };
 
-const KING_MASKS: [Bitboard; 64] = {
+static KING_MASKS: [Bitboard; 64] = {
     let mut masks = [Bitboard::EMPTY; 64];
     let mut i = 0;
     while i < 64 {
@@ -131,10 +135,22 @@ const fn gen_knight_mask(sqr: Square) -> Bitboard {
 
 #[test]
 pub fn knight_mask_test() {
-    assert_eq!( knight_mask(Square::A1).iter().collect::<Vec<_>>(), vec![Square::C2, Square::B3]);
-    assert_eq!( knight_mask(Square::H1).iter().collect::<Vec<_>>(), vec![Square::F2, Square::G3]);
-    assert_eq!( knight_mask(Square::A8).iter().collect::<Vec<_>>(), vec![Square::B6, Square::C7]);
-    assert_eq!( knight_mask(Square::H8).iter().collect::<Vec<_>>(), vec![Square::G6, Square::F7]);
+    assert_eq!(
+        knight_mask(Square::A1).iter().collect::<Vec<_>>(),
+        vec![Square::C2, Square::B3]
+    );
+    assert_eq!(
+        knight_mask(Square::H1).iter().collect::<Vec<_>>(),
+        vec![Square::F2, Square::G3]
+    );
+    assert_eq!(
+        knight_mask(Square::A8).iter().collect::<Vec<_>>(),
+        vec![Square::B6, Square::C7]
+    );
+    assert_eq!(
+        knight_mask(Square::H8).iter().collect::<Vec<_>>(),
+        vec![Square::G6, Square::F7]
+    );
 }
 
 #[test]

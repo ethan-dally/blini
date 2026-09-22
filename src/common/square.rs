@@ -83,8 +83,12 @@ impl Square {
     pub const fn shift<D: Direction>(self, amt: u8) -> Option<Square> {
         let file = self.file() as i8 + D::DX * amt as i8;
         let rank = self.rank() as i8 + D::DY * amt as i8;
-        if file as u8 & 0b1111_1000 != 0 {return None;}
-        if rank as u8 & 0b1111_1000 != 0 {return None;}
+        if file as u8 & 0b1111_1000 != 0 {
+            return None;
+        }
+        if rank as u8 & 0b1111_1000 != 0 {
+            return None;
+        }
         let index = rank << 3 | file;
         Square::try_index(index as u8)
     }

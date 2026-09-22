@@ -21,7 +21,6 @@ impl FlagsCount {
 
 impl Board {
     fn perft(self, depth: u8) -> (u64, FlagsCount) {
-
         let move_list = self.get_moves();
 
         if depth == 0 {
@@ -49,9 +48,8 @@ impl Board {
 
 #[test]
 fn perft_1() {
-    let board = Board::parse_fen(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        .expect("fen incorrect");
     let perft = board.perft(0);
     perft.1.display();
     assert_eq!(perft.0, 20);
@@ -59,9 +57,8 @@ fn perft_1() {
 
 #[test]
 fn perft_2() {
-    let board = Board::parse_fen(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        .expect("fen incorrect");
     let perft = board.perft(1);
     perft.1.display();
     assert_eq!(perft.0, 400);
@@ -69,9 +66,8 @@ fn perft_2() {
 
 #[test]
 fn perft_3() {
-    let board = Board::parse_fen(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        .expect("fen incorrect");
     let perft = board.perft(2);
     perft.1.display();
     assert_eq!(perft.0, 8902);
@@ -79,9 +75,8 @@ fn perft_3() {
 
 #[test]
 fn perft_4() {
-    let board = Board::parse_fen(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        .expect("fen incorrect");
     let perft = board.perft(3);
     perft.1.display();
     assert_eq!(perft.0, 197281);
@@ -99,9 +94,9 @@ fn perft_4() {
 
 #[test]
 fn kiwipete_1() {
-    let board = Board::parse_fen(
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board =
+        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+            .expect("fen incorrect");
     let perft = board.perft(0);
     perft.1.display();
     assert_eq!(perft.0, 48);
@@ -109,9 +104,9 @@ fn kiwipete_1() {
 
 #[test]
 fn kiwipete_2() {
-    let board = Board::parse_fen(
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board =
+        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+            .expect("fen incorrect");
     let perft = board.perft(1);
     perft.1.display();
     assert_eq!(perft.0, 2039);
@@ -119,9 +114,9 @@ fn kiwipete_2() {
 
 #[test]
 fn kiwipete_3() {
-    let board = Board::parse_fen(
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board =
+        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+            .expect("fen incorrect");
     let perft = board.perft(2);
     perft.1.display();
     assert_eq!(perft.0, 97862);
@@ -129,9 +124,9 @@ fn kiwipete_3() {
 
 #[test]
 fn kiwipete_4() {
-    let board = Board::parse_fen(
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-    ).expect("fen incorrect");
+    let board =
+        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+            .expect("fen incorrect");
     let perft = board.perft(3);
     perft.1.display();
     println!("total: {}", perft.0);
@@ -158,7 +153,7 @@ macro_rules! epd_tests {
 }
 
 //tests from https://github.com/ChrisWhittington/Chess-EPDs
-epd_tests!{
+epd_tests! {
     (epd_001, "r4nk1/p5bp/2p5/5p1P/6P1/4R1B1/K7/8 b - - 0 1", 23),
     (epd_002, "5k2/8/1P2B3/p5P1/7r/1R6/1K6/8 w - - 0 1", 27),
 }
