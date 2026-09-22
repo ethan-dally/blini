@@ -1,6 +1,6 @@
 use crate::common::bitboard::Bitboard;
 use crate::common::colour::Colour;
-use crate::common::direction::{Direction, *};
+use crate::common::direction::Direction;
 use crate::common::file::File;
 use crate::common::rank::Rank;
 use enum_map::Enum;
@@ -142,6 +142,7 @@ fn square_new() {
 
 #[test]
 fn shift() {
+    use crate::common::direction::*;
     // North
     assert_eq!(Square::A1.shift::<North>(1), Some(Square::A2));
     assert_eq!(Square::A1.shift::<North>(7), Some(Square::A8));

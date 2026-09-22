@@ -51,7 +51,7 @@ impl Board {
         let bb = sqr.to_bb();
         self.pieces[piece] ^= bb;
         self.colours[colour] ^= bb;
-        return piece;
+        piece
     }
 
     #[inline]

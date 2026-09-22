@@ -1,4 +1,4 @@
-use enum_map::{Enum, EnumMap};
+use enum_map::EnumMap;
 
 use crate::{board::board::Board, common::r#move::MoveFlag};
 
@@ -42,7 +42,7 @@ impl Board {
             flags_count.add_assign(perft.1);
             count += perft.0;
         }
-        return (count, flags_count);
+        (count, flags_count)
     }
 }
 

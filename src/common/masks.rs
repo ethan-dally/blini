@@ -134,7 +134,7 @@ const fn gen_knight_mask(sqr: Square) -> Bitboard {
 }
 
 #[test]
-pub fn knight_mask_test() {
+fn knight_mask_test() {
     assert_eq!(
         knight_mask(Square::A1).iter().collect::<Vec<_>>(),
         vec![Square::C2, Square::B3]
@@ -154,10 +154,42 @@ pub fn knight_mask_test() {
 }
 
 #[test]
-pub fn king_mask_test() {
+fn king_mask_test() {
     assert_eq!(king_mask(Square::A1), Bitboard(770));
     assert_eq!(king_mask(Square::C4), Bitboard(60298231808));
     assert_eq!(king_mask(Square::A8), Bitboard(144959613005987840));
     assert_eq!(king_mask(Square::G8), Bitboard(11592265440851656704));
     assert_eq!(king_mask(Square::H8), Bitboard(4665729213955833856));
+}
+
+#[test]
+fn between_mask_test() {
+    macro_rules! sqrs_to_bb {
+        ($($sqr:expr),*) => {{
+            let mut bb = Bitboard::EMPTY;
+
+            $(
+                bb |= $sqr.to_bb();
+            )*
+
+            bb
+        }};
+    }
+    assert_eq!( between_mask(Square::A1, Square::A2), sqrs_to_bb!(Square::A2));
+    assert_eq!( between_mask(Square::A1, Square::B1), sqrs_to_bb!(Square::B1));
+    assert_eq!( between_mask(Square::A1, Square::B2), sqrs_to_bb!(Square::B2));
+    assert_eq!( between_mask(Square::A1, Square::D1), sqrs_to_bb!(Square::B1, Square::C1, Square::D1));
+    assert_eq!( between_mask(Square::H1, Square::E1), sqrs_to_bb!(Square::G1, Square::F1, Square::E1));
+    assert_eq!( between_mask(Square::A1, Square::A4), sqrs_to_bb!(Square::A2, Square::A3, Square::A4));
+    assert_eq!( between_mask(Square::H8, Square::H5), sqrs_to_bb!(Square::H7, Square::H6, Square::H5));
+    assert_eq!( between_mask(Square::A1, Square::D4), sqrs_to_bb!(Square::B2, Square::C3, Square::D4));
+    assert_eq!( between_mask(Square::H1, Square::E4), sqrs_to_bb!(Square::G2, Square::F3, Square::E4));
+    assert_eq!( between_mask(Square::H8, Square::E5), sqrs_to_bb!(Square::G7, Square::F6, Square::E5));
+    assert_eq!( between_mask(Square::A8, Square::D5), sqrs_to_bb!(Square::B7, Square::C6, Square::D5));
+    assert_eq!( between_mask(Square::A1, Square::H1), sqrs_to_bb!( Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1));
+    assert_eq!( between_mask(Square::A1, Square::A8), sqrs_to_bb!( Square::A2, Square::A3, Square::A4, Square::A5, Square::A6, Square::A7, Square::A8));
+    assert_eq!( between_mask(Square::A1, Square::C2), Bitboard::EMPTY);
+    assert_eq!( between_mask(Square::B2, Square::E3), Bitboard::EMPTY);
+    assert_eq!( between_mask(Square::A1, Square::H2), Bitboard::EMPTY);
+    assert_eq!( between_mask(Square::D4, Square::D4), Bitboard::EMPTY);
 }

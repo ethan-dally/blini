@@ -102,3 +102,15 @@ fn rank_to_bb() {
     assert_eq!(Rank::Three.to_bb(), Bitboard(0x0000_0000_00FF_0000));
     assert_eq!(Rank::Eight.to_bb(), Bitboard(0xFF00_0000_0000_0000));
 }
+
+#[test]
+fn rank_relative_to() {
+    assert_eq!(Rank::One.relative_to(Colour::White), Rank::One);
+    assert_eq!(Rank::One.relative_to(Colour::Black), Rank::Eight);
+
+    assert_eq!(Rank::Two.relative_to(Colour::White), Rank::Two);
+    assert_eq!(Rank::Two.relative_to(Colour::Black), Rank::Seven);
+
+    assert_eq!(Rank::Six.relative_to(Colour::White), Rank::Six);
+    assert_eq!(Rank::Six.relative_to(Colour::Black), Rank::Three);
+}

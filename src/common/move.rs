@@ -55,7 +55,7 @@ impl Move {
     }
 
     pub fn display(&self) {
-        println!("s: {}, d: {}, f: {:?}", self.src, self.dst, self.flag);
+        println!("src: {}, dst: {}, flag: {:?}", self.src, self.dst, self.flag);
     }
 
     #[inline]
@@ -78,6 +78,7 @@ impl Move {
 pub struct MoveList(pub ArrayVec<Move, MAX_MOVES>);
 
 impl MoveList {
+    #[inline]
     pub fn add(&mut self, mv: Move) {
         self.0.push(mv);
     }
@@ -107,7 +108,7 @@ impl MoveList {
                     _ => print!("{amt} "),
                 }
             }
-            println!("");
+            println!();
         }
 
         println!("\ndst: \n");
@@ -120,7 +121,7 @@ impl MoveList {
                     _ => print!("{amt} "),
                 }
             }
-            println!("");
+            println!();
         }
 
         println!("count: {}", self.0.len())
