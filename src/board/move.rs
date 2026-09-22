@@ -26,6 +26,12 @@ impl MoveList {
         self.0.push(mv);
     }
 
+    pub fn display_raw(&self) {
+        for mv in self.0.iter() {
+            println!("{}{}", mv.src, mv.dst)
+        }
+    }
+
     pub fn display(&self) {
         let mut src_piece_array = [0u8; 64];
         let mut dst_piece_array = [0u8; 64];

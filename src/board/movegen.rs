@@ -32,13 +32,19 @@ impl Board {
             diag_pin_mask
         ) = self.check_and_pin_masks();
 
+        println!("checkmask \n{}", checkmask);
+        println!("banned \n{}", banned);
+        println!("orth pins \n{orth_pin_mask}");
+
         let mut move_list = MoveList::default();
-        self.pawns(&mut move_list, checkmask);
-        self.knights(&mut move_list, checkmask);
+        self.pawns(&mut move_list, checkmask, orth_pin_mask, diag_pin_mask);
+        self.pinned_pawns(&mut move_list, checkmask, orth_pin_mask, diag_pin_mask);
+        self.knights(&mut move_list, checkmask, orth_pin_mask, diag_pin_mask);
         self.sliders(&mut move_list, checkmask, 
             orth_pin_mask,
              diag_pin_mask
         );
+
         self.king(&mut move_list, banned);
         self.castling(&mut move_list, banned);
         move_list
@@ -129,22 +135,172 @@ impl Board {
             }
         }
 
+        let checkmask_knights = 
+            knight_mask(us_king)
+            & self.pieces(Piece::Knight)
+            & self.them_pieces();
+
+        let checkmask_pawns = (
+            us_king.relative_shift::<NorthEast>(self.stm, 1)
+                .map_or_default(|s|{s.to_bb()}) |
+            us_king.relative_shift::<NorthWest>(self.stm, 1)
+                .map_or_default(|s|{s.to_bb()})
+            ) & self.pieces(Piece::Pawn) & self.them_pieces();
+
+        for sqr in (checkmask_knights | checkmask_pawns).iter() {
+            check_mask &= sqr.to_bb();
+        }
+
         (check_mask, orth_pin_mask, diag_pin_mask)
     }
 
     #[inline]
-    fn pawns(&self, move_list: &mut MoveList, checkmask: Bitboard) {
+    fn pinned_pawns(
+        &self, 
+        move_list: &mut MoveList, 
+        checkmask: Bitboard,
+        orth_pin_mask: Bitboard,
+        diag_pin_mask: Bitboard,
+    ) {
+        /*
+        this is gross as it redoes an amount of pawn_moves already, but it should be
+        faster since were not doing the pin checks for the vast majority of pawns
+
+        if theres a check in play, you cant move your pinned pawn to prevent it
+        since the best the pinned pawn can do is take the piece thats pinning
+        which cant 'by meaning of a pin' be the piece thats doing the check
+        */
+        if checkmask != Bitboard::FULL {
+            return;
+        }
 
         let promotions = Rank::Eight.relative_to(self.stm).to_bb();
-        let us_pawns = 
-            self.pieces(Piece::Pawn) 
-            & self.us_pieces();
+
+        let diag_pawns = 
+            self.pieces(Piece::Pawn)
+            & self.us_pieces()
+            & diag_pin_mask;
+
+        let orth_pawns = 
+            self.pieces(Piece::Pawn)
+            & self.us_pieces()
+            & orth_pin_mask;
+
+        //since diag pinned pawns cant move forward
+        let pawns_forward_1 =
+            orth_pawns.relative_shift::<North>(self.stm, 1) 
+            & !self.all_pieces();
 
         //forward 1 (discounting promotions)
+        for dst in pawns_forward_1.iter() {
+            //also impossible to be pinned and promote here
+            let src = dst.relative_shift::<South>(self.stm, 1).expect("unreachable");
+            if orth_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::NonCapture));
+            }
+        }
+
+        //forward 2
+        let pawns_forward_2 =
+            pawns_forward_1.relative_shift::<North>(self.stm, 1) 
+            & Rank::Two.relative_to(self.stm).to_bb()
+            & !self.all_pieces();
+
+        for dst in pawns_forward_2.iter() {
+            let src = dst.relative_shift::<South>(self.stm, 2)
+                .expect("unreachable");
+            if orth_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::PawnDouble));
+            }
+        }
+
+        //attack
+        //if orth pinned, then cant take diagonally
+        let attack_left = 
+            diag_pawns.relative_shift::<NorthEast>(self.stm, 1)
+            & self.them_pieces();
+
+        let attack_right = 
+            diag_pawns.relative_shift::<NorthWest>(self.stm, 1)
+            & self.them_pieces();
+
+        for dst in (attack_left & !promotions).iter() {
+            let src = dst.relative_shift::<SouthWest>(self.stm, 1)
+                .expect("unreachable");
+            if diag_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::Capture));
+            }
+        }
+
+        for dst in (attack_left & promotions).iter() {
+            let src = dst.relative_shift::<SouthWest>(self.stm, 1)
+                .expect("unreachable");
+            if diag_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionQueen));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionRook));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionBishop));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionKnight));
+            }
+        }
+
+        for dst in (attack_right & !promotions).iter() {
+            let src = dst.relative_shift::<SouthEast>(self.stm, 1)
+                .expect("unreachable");
+            if diag_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::Capture));
+            }
+        }
+
+        for dst in (attack_right & promotions).iter() {
+            let src = dst.relative_shift::<SouthEast>(self.stm, 1)
+                .expect("unreachable");
+            if diag_pin_mask.has(dst) {
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionQueen));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionRook));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionBishop));
+                move_list.add(Move::new(src, dst, MoveFlag::CapturePromotionKnight));
+            }
+        }
+
+        //en passant
+        //no discovered pin check needed since we are already in a pin
+        if let Some(ep_sqr) = self.en_passant {
+            let east = ep_sqr.shift::<East>(1).map_or_default(|s|{s.to_bb()});
+            let west = ep_sqr.shift::<West>(1).map_or_default(|s|{s.to_bb()});
+            let en_passant = diag_pawns & (east | west);
+            for src in en_passant.iter() {
+                let dst = ep_sqr
+                    .relative_shift::<North>(self.stm, 1)
+                    .expect("en passant dest square must exist");
+                if diag_pin_mask.has(dst) {
+                    move_list.add(Move::new(src, dst, MoveFlag::EnPassant));
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn pawns(
+        &self, 
+        move_list: &mut MoveList, 
+        checkmask: Bitboard,
+        orth_pin_mask: Bitboard,
+        diag_pin_mask: Bitboard,
+    ) {
+
+        let pinned = orth_pin_mask | diag_pin_mask;
+        let promotions = Rank::Eight.relative_to(self.stm).to_bb();
+
+        let us_pawns = 
+            self.pieces(Piece::Pawn)
+            & self.us_pieces()
+            & !pinned;
+
         let pawns_forward_1 = 
             us_pawns.relative_shift::<North>(self.stm, 1) 
             & !self.all_pieces();
 
+        //forward 1 (discounting promotions)
         for dst in (pawns_forward_1 & !promotions & checkmask).iter() {
             let Some(src) = dst.relative_shift::<South>(self.stm, 1) else {
                 debug_assert!(false, "should be unreachable");
@@ -285,8 +441,15 @@ impl Board {
     }
 
     #[inline]
-    fn knights(&self, move_list: &mut MoveList, checkmask: Bitboard) {
-        let src_bb = self.pieces(Piece::Knight) & self.us_pieces();
+    fn knights(
+        &self, 
+        move_list: &mut MoveList, 
+        checkmask: Bitboard, 
+        orth_pin_mask: Bitboard,
+        diag_pin_mask: Bitboard,
+    ) {
+        let pinned = orth_pin_mask | diag_pin_mask;
+        let src_bb = self.pieces(Piece::Knight) & self.us_pieces() & !pinned;
         for src in src_bb.iter() {
 
             let valid_moves = 
@@ -317,7 +480,11 @@ impl Board {
         /*
         Rooks
         */
-        let us_rooks = self.pieces(Piece::Rook) & self.us_pieces();
+        let us_rooks = 
+            self.pieces(Piece::Rook) 
+            & self.us_pieces()
+            & !diag_pinmask;
+
         for src in us_rooks.iter() {
 
             let mut rook_moves = table
@@ -341,7 +508,11 @@ impl Board {
         /*
         Bishops
         */
-        let us_bishops = self.pieces(Piece::Bishop) & self.us_pieces();
+        let us_bishops = 
+            self.pieces(Piece::Bishop) 
+            & self.us_pieces()
+            & !orth_pinmask;
+
         for src in us_bishops.iter() {
 
             let mut bishop_moves = table
