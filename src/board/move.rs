@@ -92,12 +92,6 @@ pub enum MoveFlag {
 }
 
 impl MoveFlag {
-
-    #[inline]
-    fn is_capture(self) -> bool {
-        (self as u8) > 8
-    }
-
     #[inline]
     fn piece(&self) -> Piece {
         match self {
@@ -200,7 +194,7 @@ impl Board {
             },
             MoveFlag::CastleShort => {
                 let rook_src = Square::H1.relative(self.stm);
-                let rook_dst = Square::D1.relative(self.stm);
+                let rook_dst = Square::F1.relative(self.stm);
                 self.remove_piece(rook_src);
                 self.set_square(rook_dst, self.stm, Piece::Rook);
             },

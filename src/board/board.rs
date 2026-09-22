@@ -31,9 +31,15 @@ impl Board {
 
     #[inline]
     pub fn set_square(&mut self, sqr: Square, colour: Colour, piece: Piece) {
-        self.pieces[piece] |= sqr.to_bb();
-        self.colours[colour] |= sqr.to_bb();
-        self.mailbox[sqr] = Some((piece, colour));
+        if let Some((old_piece, old_colour)) = self.mailbox[sqr].take() {
+            let bb = sqr.to_bb();
+            self.pieces[old_piece] ^= bb;
+            self.colours[old_colour] ^= bb;
+        }
+        let bb = sqr.to_bb();
+        self.pieces[piece] |= bb;
+        self.colours[colour] |= bb;
+        self.mailbox[sqr] = Some((piece, colour)); 
     }
 
     /// assumption of piece existing, since used in make_move code

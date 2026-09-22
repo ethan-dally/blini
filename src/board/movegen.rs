@@ -203,7 +203,7 @@ impl Board {
         //forward 2
         let pawns_forward_2 =
             pawns_forward_1.relative_shift::<North>(self.stm, 1) 
-            & Rank::Two.relative_to(self.stm).to_bb()
+            & Rank::Four.relative_to(self.stm).to_bb()
             & !self.all_pieces();
 
         for dst in pawns_forward_2.iter() {

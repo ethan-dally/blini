@@ -1,6 +1,5 @@
 use crate::{
-    board::board::Board,
-    common::{colour::Colour, file::File, piece::Piece, rank::Rank, square::Square},
+    board::board::Board, common::{colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square},
 };
 use color_eyre::eyre::{OptionExt, Result, eyre};
 
@@ -124,7 +123,9 @@ impl Board {
         if en_passant != "-" {
             let en_passant = Square::try_from_str(en_passant)
                 .ok_or(eyre!("invalid en_passant str {en_passant}"))?;
-            board.set_en_passant(Some(en_passant));
+            let dst = en_passant.relative_shift::<South>(stm, 1)
+                .ok_or_eyre("invalid en passant sqr")?;
+            board.set_en_passant(Some(dst));
         }
 
         /*
@@ -205,7 +206,7 @@ fn fen_custom_position() {
     assert!(!board.get_castling(Colour::White, false));
     assert!(!board.get_castling(Colour::Black, true));
     assert!(board.get_castling(Colour::Black, false));
-    assert_eq!(board.en_passant(), Some(Square::D6));
+    assert_eq!(board.en_passant(), Some(Square::D7));
     assert_eq!(board.hmc(), 17);
     assert_eq!(board.fmn(), 42);
 }
