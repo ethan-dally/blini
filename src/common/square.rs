@@ -93,6 +93,13 @@ impl Square {
         Square::try_index(index as u8)
     }
 
+    pub fn parse(raw: &str) -> Option<Square> {
+        let mut iter = raw.chars();
+        let file = File::try_from_char(iter.next()?)?;
+        let rank = Rank::try_from_char(iter.next()?)?;
+        Some(Square::new(rank, file))
+    }
+
     pub const ALL: [Square; 64] = {
         let mut sqrs = [Square::A1; 64];
         let mut i = 0;

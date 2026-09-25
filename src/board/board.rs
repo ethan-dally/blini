@@ -15,6 +15,12 @@ pub struct Board {
 
 impl Board {
     #[inline]
+    pub fn startpos() -> Board {
+        Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+            .expect("hardcoded startpos fen failed to parse")
+    }
+
+    #[inline]
     pub fn set_stm(&mut self, colour: Colour) {
         self.stm = colour;
     }

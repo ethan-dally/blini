@@ -83,6 +83,11 @@ impl MoveList {
         self.0.push(mv);
     }
 
+    #[inline]
+    pub fn find(&self, src: Square, dst: Square) -> Option<Move> {
+        self.0.iter().copied().find(|mv|{mv.dst == dst && mv.src == src})
+    }
+
     pub fn display_raw(&self) {
         for mv in self.0.iter() {
             println!("{}{}", mv.src, mv.dst)
