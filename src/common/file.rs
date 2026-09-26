@@ -75,6 +75,21 @@ impl fmt::Display for File {
     }
 }
 
+impl From<File> for char {
+    fn from(value: File) -> Self {
+        match value {
+            File::A => 'a',
+            File::B => 'b',
+            File::C => 'c',
+            File::D => 'd',
+            File::E => 'e',
+            File::F => 'f',
+            File::G => 'g',
+            File::H => 'h',
+        }
+    }
+}
+
 #[test]
 fn file() {
     assert_eq!(File::try_index(0b0000_0000), Some(File::A));

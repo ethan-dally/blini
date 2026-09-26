@@ -72,6 +72,16 @@ impl Move {
     pub fn dst(&self) -> Square {
         self.dst
     }
+
+    #[inline]
+    pub fn uci(self) -> String {
+        [
+            char::from(self.src.file()),
+            char::from(self.src.rank()),
+            char::from(self.dst.file()),
+            char::from(self.dst.rank()),
+        ].iter().collect()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -86,6 +96,11 @@ impl MoveList {
     #[inline]
     pub fn find(&self, src: Square, dst: Square) -> Option<Move> {
         self.0.iter().copied().find(|mv|{mv.dst == dst && mv.src == src})
+    }
+
+    #[inline]
+    pub fn iter(&self) -> std::slice::Iter<'_, Move> {
+        self.0.iter()
     }
 
     pub fn display_raw(&self) {

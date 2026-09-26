@@ -136,7 +136,7 @@ impl Board {
         full move number
         */
         let fmc = fmc
-            .parse::<u32>()
+            .parse::<u16>()
             .or(Err(eyre!("fmc not a valid number")))?;
         board.set_fmn(fmc);
         Ok(board)

@@ -10,9 +10,10 @@ pub struct Board {
     pub(super) castling: [bool; 4],
     pub(super) en_passant: Option<Square>,
     pub(super) hmc: u8,
-    pub(super) fmn: u32,
+    pub(super) fmn: u16,
 }
 
+#[allow(dead_code)]
 impl Board {
     #[inline]
     pub fn startpos() -> Board {
@@ -31,7 +32,7 @@ impl Board {
     }
 
     #[inline]
-    pub fn set_fmn(&mut self, count: u32) {
+    pub fn set_fmn(&mut self, count: u16) {
         self.fmn = count;
     }
 
@@ -78,7 +79,7 @@ impl Board {
     }
 
     #[inline]
-    pub fn fmn(&self) -> u32 {
+    pub fn fmn(&self) -> u16 {
         self.fmn
     }
 

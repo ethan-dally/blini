@@ -36,7 +36,7 @@ impl Board {
 
     pub fn do_move(&mut self, mv: Move) {
         self.hmc += 1;
-        self.fmn += (self.stm == Colour::Black) as u32;
+        self.fmn += (self.stm == Colour::Black) as u16;
         let moved_piece = self.remove_piece(mv.src());
         self.set_square(mv.dst(), self.stm(), moved_piece);
         self.set_en_passant(None);

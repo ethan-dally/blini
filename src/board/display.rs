@@ -5,8 +5,9 @@ use crate::{
 use std::fmt::Display;
 
 impl Board {
+    #[allow(dead_code)]
     pub fn display(&self) {
-        println!("\n{self}")
+        println!("\n{self}");
     }
 }
 
@@ -44,6 +45,7 @@ impl Display for Board {
 }
 
 impl FlagsCount {
+    #[allow(dead_code)]
     pub fn display(&self) {
         println!(
             "NonCapture: {}, PawnDouble: {}, CastleShort: {}, CastleLong: {}, \

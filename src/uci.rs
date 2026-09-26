@@ -1,6 +1,6 @@
-use color_eyre::eyre::{OptionExt, Result, eyre};
-use std::{io::{self, Read, Write}, str::SplitWhitespace};
-use crate::{board::{self, board::Board}, common::{r#move::Move, square::Square}};
+use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
+use std::{io::{self, Write}, str::SplitWhitespace};
+use crate::{board::board::Board, common::{colour::Colour, file::File, r#move::Move, rank::Rank, square::Square}, search::{search::Search, time::TimeManager}};
 
 #[derive(Debug)]
 enum ReceiveUci {
@@ -45,7 +45,6 @@ impl ReceiveUci {
 
     fn parse_pos(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         let pos = uci.next()?.to_ascii_lowercase();
-        println!("got to startpos: {pos}");
         let mut board: Board = match pos.as_str() {
             "startpos" => Board::startpos(),
             "fen" => {
@@ -65,24 +64,25 @@ impl ReceiveUci {
     }
 }
 
-#[derive(Debug)]
-enum SendUci {
-    BestMove(Move),
-    UciOk,
-    Id{name: String, author: String},
+#[derive(Debug, PartialEq)]
+pub enum Abort {
+    Yes,
+    No
 }
 
 #[derive(Debug)]
-pub struct Engine {}
+pub struct Engine {
+    position: Option<Board>,
+    search: Search
+}
 
 impl Engine {
     pub fn default() -> Engine {
-        Engine {}
+        Engine {position: None, search: Search::new()}
     }
 
     pub fn run(&mut self) -> Result<()> {
         let args = std::env::args().skip(1).collect::<Vec<String>>();
-        println!("args: {:?}", args);
         if args == vec!["bench".to_string()] {
             Engine::run_bench()?;
         } else if args.is_empty() {
@@ -102,8 +102,49 @@ impl Engine {
             stdin.read_line(&mut buffer)?;
             let raw: std::str::SplitWhitespace<'_> = buffer.split_whitespace();
             let Some(rec_uci) = ReceiveUci::parse(raw) else {continue;};
-            println!("rec_uci {:?}", rec_uci);
+            let abort = self.do_uci_command(rec_uci)?;
             let _ = stdout.flush();
+            if abort == Abort::Yes {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn do_uci_command(&mut self, uci: ReceiveUci) -> Result<Abort> {
+        match uci {
+            ReceiveUci::Quit => {
+                Ok(Abort::Yes)
+            },
+            ReceiveUci::Uci => {
+                println!("id name ???");
+                println!("id author Drex");
+                println!("uciok");
+                Ok(Abort::No)
+            },
+            ReceiveUci::IsReady => {
+                println!("readyok");
+                Ok(Abort::No)
+            },
+            ReceiveUci::Position(board) => {
+                self.position = Some(board);
+                Ok(Abort::No)
+            },
+            ReceiveUci::UciNewGame => {
+                *self = Engine::default();
+                Ok(Abort::No)
+            },
+            ReceiveUci::Go { wtime, btime, winc, binc } => {
+                let board = self.position.clone()
+                    .ok_or_eyre("use the 'position' command to set a position")?;
+                let (time, increment) = match board.stm() {
+                    Colour::Black => (btime, binc),
+                    Colour::White => (wtime, winc)
+                };
+                let time_manager = TimeManager::new(time, increment);
+                self.search.start_search(board, time_manager)?;
+                Ok(Abort::No)
+            }
         }
     }
 }
