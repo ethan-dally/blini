@@ -1,33 +1,19 @@
 use std::{
-    cmp::max,
-    sync::{
-        Arc,
-        Mutex,
-        atomic::{
-            AtomicBool,
-            Ordering,
+    cmp::max, sync::{
+        Arc, mpsc::{
+            Receiver, Sender, channel,
         },
-        mpsc::{
-            Receiver,
-            Sender,
-            channel,
-        },
-    },
-    thread::{
+    }, thread::{
         self,
         JoinHandle,
     },
 };
 
-use color_eyre::eyre::{
-    OptionExt,
-    Result,
-    eyre,
-};
 use rand::{
     RngExt,
     rngs::ThreadRng,
 };
+use thiserror::Error;
 
 use crate::{
     board::board::Board,
@@ -40,8 +26,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Search {
-    worker_thread: JoinHandle<Result<()>>,
-    shared: Option<SharedData>,
+    worker_thread: JoinHandle<Result<(), SearchError>>,
     sender: Sender<WorkerCommand>,
 }
 
@@ -52,30 +37,40 @@ impl Search {
         Search {
             sender,
             worker_thread,
-            shared: None,
         }
     }
 
-    fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<()> {
+    fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<(), SearchError> {
         for cmd in cmds.iter() {
             match cmd {
                 WorkerCommand::Search(shared) => {
                     let mv = negamax(shared.clone())?;
                     println!("{}", mv.uci());
+                },
+                WorkerCommand::Stop => {
+                    break;
                 }
             }
         }
         Ok(())
     }
 
-    pub fn start_search(&self, board: Board, time_manager: TimeManager) -> Result<()> {
+    pub fn start_search(&self, board: Board, time_manager: TimeManager) -> Result<(), SearchError> {
         /*
         later for multiple threads here would be the place to clone the shared
         data arc
         */
         let shared_data = SharedData::new(board, time_manager);
-        self.sender.send(WorkerCommand::Search(shared_data))?;
+        self.sender.send(WorkerCommand::Search(shared_data))
+            .map_err(|_|{SearchError::Start})?;
         Ok(())
+    }
+
+    pub fn stop(self) -> Result<(), SearchError> {
+        self.sender.send(WorkerCommand::Stop)
+            .map_err(|_|{SearchError::Stop})?;
+        self.worker_thread.join()
+            .map_err(|_|{SearchError::Stop})?
     }
 }
 
@@ -83,13 +78,11 @@ impl Search {
 struct SharedData {
     board: Board,
     time_manager: TimeManager,
-    current_best_move: Mutex<Option<Move>>,
 }
 
 impl SharedData {
     fn new(board: Board, time_manager: TimeManager) -> Arc<SharedData> {
         Arc::new(SharedData {
-            current_best_move: Mutex::new(None),
             time_manager,
             board,
         })
@@ -99,6 +92,17 @@ impl SharedData {
 #[derive(Debug)]
 enum WorkerCommand {
     Search(Arc<SharedData>),
+    Stop,
+}
+
+#[derive(Debug, Error)]
+pub enum SearchError {
+    #[error("no legal moves")]
+    NoLegalMoves,
+    #[error("failed to start search worker")]
+    Start,
+    #[error("failed to send stop command to worker")]
+    Stop
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]
@@ -114,14 +118,14 @@ fn random_eval(_board: Board, rng: &mut ThreadRng) -> Score {
     Score(rng.random_range(-10_000..=10_000))
 }
 
-fn negamax(shared: Arc<SharedData>) -> Result<Move> {
+fn negamax(shared: Arc<SharedData>) -> Result<Move, SearchError> {
     let mut rng = rand::rng();
     let moves = shared.board.get_moves();
 
     //early return check
     let length = moves.iter().len();
     if length == 0 {
-        return Err(eyre!("no legal moves for given board"));
+        return Err(SearchError::NoLegalMoves);
     }
     let first_move = moves.clone().into_iter().next().unwrap();
     if length == 1 {

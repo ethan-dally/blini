@@ -60,13 +60,6 @@ impl Move {
         Move { src, dst, flag }
     }
 
-    pub fn display(&self) {
-        println!(
-            "src: {}, dst: {}, flag: {:?}",
-            self.src, self.dst, self.flag
-        );
-    }
-
     #[inline]
     pub fn flag(&self) -> MoveFlag {
         self.flag
@@ -117,12 +110,7 @@ impl MoveList {
         self.0.iter()
     }
 
-    pub fn display_raw(&self) {
-        for mv in self.0.iter() {
-            println!("{}{}", mv.src, mv.dst)
-        }
-    }
-
+    #[allow(dead_code)]
     pub fn display(&self) {
         let mut src_piece_array = [0u8; 64];
         let mut dst_piece_array = [0u8; 64];

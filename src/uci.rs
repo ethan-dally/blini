@@ -17,9 +17,6 @@ use crate::{
     board::board::Board,
     common::{
         colour::Colour,
-        file::File,
-        r#move::Move,
-        rank::Rank,
         square::Square,
     },
     search::{
@@ -166,7 +163,9 @@ impl Engine {
 
     fn do_uci_command(&mut self, uci: ReceiveUci) -> Result<Abort> {
         match uci {
-            ReceiveUci::Quit => Ok(Abort::Yes),
+            ReceiveUci::Quit => {
+                Ok(Abort::Yes)
+            },
             ReceiveUci::Uci => {
                 println!("id name ???");
                 println!("id author Drex");
@@ -204,5 +203,10 @@ impl Engine {
                 Ok(Abort::No)
             }
         }
+    }
+
+    pub fn shutdown(self) -> Result<()> {
+        self.search.stop()?;
+        Ok(())
     }
 }

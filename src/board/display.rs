@@ -5,7 +5,6 @@ use crate::{
     common::{
         colour::Colour,
         file::File,
-        r#move::MoveFlag,
         rank::Rank,
         square::Square,
     },

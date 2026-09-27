@@ -13,7 +13,9 @@ mod uci;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
-    let _magic_table = magic_table();
-    Engine::default().run()?;
+    let _ = magic_table();
+    let mut engine = Engine::default();
+    engine.run()?;
+    engine.shutdown()?;
     Ok(())
 }

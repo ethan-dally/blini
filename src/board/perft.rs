@@ -21,7 +21,7 @@ impl FlagsCount {
         }
     }
 
-    #[inline]
+    #[allow(dead_code)]
     pub fn display(&self) {
         println!(
             "NonCapture: {}, PawnDouble: {}, CastleShort: {}, CastleLong: {}, \
