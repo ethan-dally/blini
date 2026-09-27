@@ -53,7 +53,9 @@ impl Board {
         let mut white_king = 0;
         let mut black_king = 0;
         for (rank, row) in pieces.split('/').enumerate() {
-            let Some(rank) = Rank::try_index(7 - rank as u8) else {
+            let rank_index = u8::try_from(7 - rank)
+                .map_err(|_|{eyre!("invalid FEN rank count")})?;
+            let Some(rank) = Rank::try_index(rank_index) else {
                 return Err(eyre!("FEN has invalid rank"));
             };
 
@@ -62,7 +64,7 @@ impl Board {
             for c in row.chars() {
                 if c.is_ascii_digit() {
                     file_count +=
-                        (c.to_digit(9).ok_or_else(|| eyre!("invalid digit '{c}'"))?) as u8;
+                        u8::try_from(c.to_digit(9).ok_or_else(|| eyre!("invalid digit '{c}'"))?)?;
                 } else {
                     let file = File::try_index(file_count)
                         .ok_or_else(|| eyre!("invalid file index {file_count}"))?;

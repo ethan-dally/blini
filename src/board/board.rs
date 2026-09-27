@@ -74,13 +74,13 @@ impl Board {
 
     #[inline]
     pub fn set_castling(&mut self, colour: Colour, is_kingside: bool, change_to: bool) {
-        let index = (!colour.to_bool() as usize) << 1 | !is_kingside as usize;
+        let index = (usize::from(!colour.to_bool())) << 1 | usize::from(!is_kingside);
         self.castling[index] = change_to;
     }
 
     #[inline]
     pub fn get_castling(&self, colour: Colour, is_kingside: bool) -> bool {
-        let index = (!colour.to_bool() as usize) << 1 | !is_kingside as usize;
+        let index = (usize::from(!colour.to_bool())) << 1 | usize::from(!is_kingside);
         self.castling[index]
     }
 

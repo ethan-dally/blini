@@ -19,14 +19,14 @@ impl Engine {
     pub fn run_bench() -> Result<()> {
         let boards: Vec<_> = BENCH_FENS
             .iter()
-            .filter_map(|f| Board::parse_fen(*f).ok())
+            .filter_map(|f| Board::parse_fen(f).ok())
             .collect();
 
         let timer = Instant::now();
         let mut count: u128 = 0;
 
         for board in boards {
-            count += board.perft(DEPTH) as u128;
+            count += u128::from(board.perft(DEPTH));
         }
 
         let time = timer.elapsed().as_millis();
@@ -34,7 +34,7 @@ impl Engine {
             return Err(eyre!("couldnt parse bench fens, or very low depth"));
         }
 
-        let nps = count * 1000u128 / time;
+        let nps = (count * 1000u128).div_ceil(time);
         println!("nodes: {count}, time: {time}, nps: {nps}");
         Ok(())
     }

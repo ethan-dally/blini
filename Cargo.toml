@@ -12,3 +12,13 @@ color-eyre = "0.6.5"
 enum-map = "3.1.0"
 rand = "0.10.2"
 thiserror = "2.0.21"
+
+[lints.clippy]
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_sign_loss = "warn"
+cast_lossless = "warn"
+integer_division = "warn"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"

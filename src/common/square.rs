@@ -56,7 +56,7 @@ impl Square {
 
     #[inline]
     pub const fn try_index(index: u8) -> Option<Square> {
-        if index > 0b00111_111 {
+        if index > 0b0011_1111 {
             return None;
         }
         Some(Square::unchecked_index(index))
