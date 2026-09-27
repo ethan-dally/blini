@@ -1,10 +1,14 @@
-use crate::common::bitboard::Bitboard;
-use crate::common::colour::Colour;
-use crate::common::direction::Direction;
-use crate::common::file::File;
-use crate::common::rank::Rank;
-use enum_map::Enum;
 use std::fmt;
+
+use enum_map::Enum;
+
+use crate::common::{
+    bitboard::Bitboard,
+    colour::Colour,
+    direction::Direction,
+    file::File,
+    rank::Rank,
+};
 
 #[repr(u8)]
 #[rustfmt::skip]

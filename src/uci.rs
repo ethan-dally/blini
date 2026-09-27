@@ -1,10 +1,41 @@
-use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
-use std::{io::{self, Write}, str::SplitWhitespace};
-use crate::{board::board::Board, common::{colour::Colour, file::File, r#move::Move, rank::Rank, square::Square}, search::{search::Search, time::TimeManager}};
+use std::{
+    io::{
+        self,
+        Write,
+    },
+    str::SplitWhitespace,
+};
+
+use color_eyre::eyre::{
+    Ok,
+    OptionExt,
+    Result,
+    eyre,
+};
+
+use crate::{
+    board::board::Board,
+    common::{
+        colour::Colour,
+        file::File,
+        r#move::Move,
+        rank::Rank,
+        square::Square,
+    },
+    search::{
+        search::Search,
+        time::TimeManager,
+    },
+};
 
 #[derive(Debug)]
 enum ReceiveUci {
-    Go {wtime: u32, btime: u32, winc: u32, binc: u32},
+    Go {
+        wtime: u32,
+        btime: u32,
+        winc: u32,
+        binc: u32,
+    },
     Position(Board),
     Quit,
     Uci,
@@ -21,7 +52,7 @@ impl ReceiveUci {
             "uci" => Some(ReceiveUci::Uci),
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
             "isready" => Some(ReceiveUci::IsReady),
-            _ => None
+            _ => None,
         }
     }
 
@@ -33,14 +64,29 @@ impl ReceiveUci {
         while let (Some(arg), Some(raw_val)) = (uci.next(), uci.next()) {
             let val = raw_val.parse::<u32>().ok()?;
             match arg {
-                "wtime" => {wtime = val;},
-                "btime" => {btime = val;},
-                "winc" => {winc = val;},
-                "binc" => {binc = val;},
-                _ => {return None;}
+                "wtime" => {
+                    wtime = val;
+                }
+                "btime" => {
+                    btime = val;
+                }
+                "winc" => {
+                    winc = val;
+                }
+                "binc" => {
+                    binc = val;
+                }
+                _ => {
+                    return None;
+                }
             }
-        };
-        Some(ReceiveUci::Go { wtime, btime, winc, binc})
+        }
+        Some(ReceiveUci::Go {
+            wtime,
+            btime,
+            winc,
+            binc,
+        })
     }
 
     fn parse_pos(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
@@ -50,11 +96,13 @@ impl ReceiveUci {
             "fen" => {
                 let fen = uci.next()?;
                 Board::parse_fen(fen).ok()?
-            },
-            _ => {return None;}
+            }
+            _ => {
+                return None;
+            }
         };
         while let Some(mv) = uci.next() {
-            let (raw_src , raw_dst ) = mv.split_at_checked(2)?;
+            let (raw_src, raw_dst) = mv.split_at_checked(2)?;
             let src = Square::parse(raw_src)?;
             let dst = Square::parse(raw_dst)?;
             let verified_move = board.get_moves().find(src, dst)?;
@@ -67,18 +115,21 @@ impl ReceiveUci {
 #[derive(Debug, PartialEq)]
 pub enum Abort {
     Yes,
-    No
+    No,
 }
 
 #[derive(Debug)]
 pub struct Engine {
     position: Option<Board>,
-    search: Search
+    search: Search,
 }
 
 impl Engine {
     pub fn default() -> Engine {
-        Engine {position: None, search: Search::new()}
+        Engine {
+            position: None,
+            search: Search::new(),
+        }
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -101,7 +152,9 @@ impl Engine {
             buffer.clear();
             stdin.read_line(&mut buffer)?;
             let raw: std::str::SplitWhitespace<'_> = buffer.split_whitespace();
-            let Some(rec_uci) = ReceiveUci::parse(raw) else {continue;};
+            let Some(rec_uci) = ReceiveUci::parse(raw) else {
+                continue;
+            };
             let abort = self.do_uci_command(rec_uci)?;
             let _ = stdout.flush();
             if abort == Abort::Yes {
@@ -113,33 +166,38 @@ impl Engine {
 
     fn do_uci_command(&mut self, uci: ReceiveUci) -> Result<Abort> {
         match uci {
-            ReceiveUci::Quit => {
-                Ok(Abort::Yes)
-            },
+            ReceiveUci::Quit => Ok(Abort::Yes),
             ReceiveUci::Uci => {
                 println!("id name ???");
                 println!("id author Drex");
                 println!("uciok");
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::IsReady => {
                 println!("readyok");
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::Position(board) => {
                 self.position = Some(board);
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::UciNewGame => {
                 *self = Engine::default();
                 Ok(Abort::No)
-            },
-            ReceiveUci::Go { wtime, btime, winc, binc } => {
-                let board = self.position.clone()
+            }
+            ReceiveUci::Go {
+                wtime,
+                btime,
+                winc,
+                binc,
+            } => {
+                let board = self
+                    .position
+                    .clone()
                     .ok_or_eyre("use the 'position' command to set a position")?;
                 let (time, increment) = match board.stm() {
                     Colour::Black => (btime, binc),
-                    Colour::White => (wtime, winc)
+                    Colour::White => (wtime, winc),
                 };
                 let time_manager = TimeManager::new(time, increment);
                 self.search.start_search(board, time_manager)?;

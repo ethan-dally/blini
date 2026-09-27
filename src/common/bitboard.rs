@@ -1,13 +1,25 @@
+use std::{
+    fmt::Display,
+    ops::{
+        BitAnd,
+        BitAndAssign,
+        BitOr,
+        BitOrAssign,
+        BitXor,
+        BitXorAssign,
+        Not,
+    },
+};
+
 use crate::common::{
     colour::Colour,
-    direction::{Direction, shift_mask},
+    direction::{
+        Direction,
+        shift_mask,
+    },
     file::File,
     rank::Rank,
     square::Square,
-};
-use std::{
-    fmt::Display,
-    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not},
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -145,7 +157,13 @@ impl Iterator for BitboardIter {
 
 #[test]
 fn shift() {
-    use crate::common::direction::{East, North, NorthEast, South, West};
+    use crate::common::direction::{
+        East,
+        North,
+        NorthEast,
+        South,
+        West,
+    };
     //dirs
     assert_eq!(Square::A1.to_bb().shift::<East>(1), Square::B1.to_bb());
     assert_eq!(Square::C1.to_bb().shift::<West>(2), Square::A1.to_bb());

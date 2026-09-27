@@ -1,25 +1,59 @@
-use std::{cmp::max, sync::{Arc, atomic::{AtomicBool, Ordering}}, thread::{self, JoinHandle}};
-use std::sync::{Mutex, mpsc::{Receiver, Sender, channel}};
+use std::{
+    cmp::max,
+    sync::{
+        Arc,
+        Mutex,
+        atomic::{
+            AtomicBool,
+            Ordering,
+        },
+        mpsc::{
+            Receiver,
+            Sender,
+            channel,
+        },
+    },
+    thread::{
+        self,
+        JoinHandle,
+    },
+};
 
-use crate::{board::board::Board, common::r#move::Move, search::time::{TimeManager, TimeRemaining}};
-use color_eyre::eyre::{OptionExt, Result, eyre};
-use rand::{RngExt, rngs::ThreadRng};
+use color_eyre::eyre::{
+    OptionExt,
+    Result,
+    eyre,
+};
+use rand::{
+    RngExt,
+    rngs::ThreadRng,
+};
+
+use crate::{
+    board::board::Board,
+    common::r#move::Move,
+    search::time::{
+        TimeManager,
+        TimeRemaining,
+    },
+};
 
 #[derive(Debug)]
-pub struct Search{
+pub struct Search {
     worker_thread: JoinHandle<Result<()>>,
     shared: Option<SharedData>,
     sender: Sender<WorkerCommand>,
 }
 
 impl Search {
-
     pub fn new() -> Search {
         let (sender, receiver) = channel::<WorkerCommand>();
-        let worker_thread = thread::spawn(||{
-            Search::worker_loop(receiver)
-        });
-        Search{sender, worker_thread, shared: None}
+        let worker_thread = thread::spawn(|| Search::worker_loop(receiver));
+        Search {
+            sender,
+            worker_thread,
+            shared: None,
+        }
     }
 
     fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<()> {
@@ -28,7 +62,7 @@ impl Search {
                 WorkerCommand::Search(shared) => {
                     let mv = negamax(shared.clone())?;
                     println!("{}", mv.uci());
-                },
+                }
             }
         }
         Ok(())
@@ -49,12 +83,12 @@ impl Search {
 struct SharedData {
     board: Board,
     time_manager: TimeManager,
-    current_best_move: Mutex<Option<Move>>
+    current_best_move: Mutex<Option<Move>>,
 }
 
 impl SharedData {
     fn new(board: Board, time_manager: TimeManager) -> Arc<SharedData> {
-        Arc::new(SharedData { 
+        Arc::new(SharedData {
             current_best_move: Mutex::new(None),
             time_manager,
             board,
@@ -103,7 +137,6 @@ fn negamax(shared: Arc<SharedData>) -> Result<Move> {
         let mut ply_best_move = first_move;
 
         for mv in moves.clone() {
-
             let mut new_board = shared.board.clone();
             new_board.do_move(mv);
             let Some(score) = negamax_recursion(new_board, ply, &mut rng, shared.clone()) else {
@@ -126,7 +159,12 @@ fn negamax(shared: Arc<SharedData>) -> Result<Move> {
     }
 }
 
-fn negamax_recursion(board: Board, depth: u8, rng: &mut ThreadRng, shared: Arc<SharedData>) -> Option<Score> {
+fn negamax_recursion(
+    board: Board,
+    depth: u8,
+    rng: &mut ThreadRng,
+    shared: Arc<SharedData>,
+) -> Option<Score> {
     // TODO: add nodes count to not poll all the time???
     if depth == 0 {
         return Some(random_eval(board, rng));

@@ -1,8 +1,15 @@
-use crate::{
-    board::{board::Board},
-    common::{colour::Colour, file::File, r#move::MoveFlag, rank::Rank, square::Square},
-};
 use std::fmt::Display;
+
+use crate::{
+    board::board::Board,
+    common::{
+        colour::Colour,
+        file::File,
+        r#move::MoveFlag,
+        rank::Rank,
+        square::Square,
+    },
+};
 
 impl Board {
     #[allow(dead_code)]

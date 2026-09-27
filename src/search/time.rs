@@ -4,18 +4,17 @@ use std::time::Instant;
 pub enum TimeRemaining {
     Ample,
     SoftLimit,
-    HardLimit
+    HardLimit,
 }
 
 #[derive(Debug)]
 pub struct TimeManager {
     turn_start: Instant,
     soft_limit: u32,
-    hard_limit: u32
+    hard_limit: u32,
 }
 
 impl TimeManager {
-
     fn soft_limit(time: u32, increment: u32) -> u32 {
         time / 22 + increment / 2
     }
@@ -29,7 +28,11 @@ impl TimeManager {
         let soft_limit = TimeManager::soft_limit(time, increment);
         let hard_limit = TimeManager::hard_limit(time, increment);
         debug_assert!(hard_limit > soft_limit);
-        TimeManager { turn_start, soft_limit, hard_limit }
+        TimeManager {
+            turn_start,
+            soft_limit,
+            hard_limit,
+        }
     }
 
     pub fn poll(&self) -> TimeRemaining {
@@ -47,9 +50,12 @@ impl TimeManager {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        thread::sleep,
+        time::Duration,
+    };
+
     use super::*;
-    use std::thread::sleep;
-    use std::time::Duration;
 
     #[test]
     fn time_manager_limits() {

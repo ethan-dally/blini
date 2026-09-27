@@ -1,23 +1,46 @@
-use crate::common::{
-    bitboard::Bitboard,
-    direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West},
-    file::File,
-    rank::Rank,
-    square::Square,
-};
-use arrayvec::ArrayVec;
-use color_eyre::eyre::{OptionExt, Result, eyre};
 use core::time;
-use rand::RngExt;
 use std::{
     collections::HashMap,
     sync::{
-        Arc, OnceLock,
-        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
+        Arc,
+        OnceLock,
+        atomic::{
+            AtomicBool,
+            AtomicU32,
+            AtomicU64,
+            Ordering,
+        },
         mpsc,
     },
-    thread::{self},
+    thread::{
+        self,
+    },
     time::Instant,
+};
+
+use arrayvec::ArrayVec;
+use color_eyre::eyre::{
+    OptionExt,
+    Result,
+    eyre,
+};
+use rand::RngExt;
+
+use crate::common::{
+    bitboard::Bitboard,
+    direction::{
+        East,
+        North,
+        NorthEast,
+        NorthWest,
+        South,
+        SouthEast,
+        SouthWest,
+        West,
+    },
+    file::File,
+    rank::Rank,
+    square::Square,
 };
 
 static MAGIC_TABLE: OnceLock<MagicTable> = OnceLock::new();
@@ -628,7 +651,6 @@ fn gen_key_val_pairs(sqr: Square, is_diagonal: bool) -> HashMap<Bitboard, Bitboa
             }
         }
         map.insert(key, value);
-
     }
     map
 }

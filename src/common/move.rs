@@ -1,6 +1,12 @@
-use crate::common::{file::File, piece::Piece, rank::Rank, square::Square};
 use arrayvec::ArrayVec;
 use enum_map::Enum;
+
+use crate::common::{
+    file::File,
+    piece::Piece,
+    rank::Rank,
+    square::Square,
+};
 
 const MAX_MOVES: usize = 218;
 
@@ -55,7 +61,10 @@ impl Move {
     }
 
     pub fn display(&self) {
-        println!("src: {}, dst: {}, flag: {:?}", self.src, self.dst, self.flag);
+        println!(
+            "src: {}, dst: {}, flag: {:?}",
+            self.src, self.dst, self.flag
+        );
     }
 
     #[inline]
@@ -80,7 +89,9 @@ impl Move {
             char::from(self.src.rank()),
             char::from(self.dst.file()),
             char::from(self.dst.rank()),
-        ].iter().collect()
+        ]
+        .iter()
+        .collect()
     }
 }
 
@@ -95,7 +106,10 @@ impl MoveList {
 
     #[inline]
     pub fn find(&self, src: Square, dst: Square) -> Option<Move> {
-        self.0.iter().copied().find(|mv|{mv.dst == dst && mv.src == src})
+        self.0
+            .iter()
+            .copied()
+            .find(|mv| mv.dst == dst && mv.src == src)
     }
 
     #[inline]

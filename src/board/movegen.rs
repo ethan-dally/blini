@@ -3,11 +3,30 @@ use crate::{
     common::{
         bitboard::Bitboard,
         colour::Colour,
-        direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West},
+        direction::{
+            East,
+            North,
+            NorthEast,
+            NorthWest,
+            South,
+            SouthEast,
+            SouthWest,
+            West,
+        },
         magics::magic_table,
-        masks::{between_mask, king_mask, knight_mask},
-        r#move::{Move, MoveFlag, MoveList},
-        piece::Piece::{self},
+        masks::{
+            between_mask,
+            king_mask,
+            knight_mask,
+        },
+        r#move::{
+            Move,
+            MoveFlag,
+            MoveList,
+        },
+        piece::Piece::{
+            self,
+        },
         rank::Rank,
         square::Square,
     },
@@ -528,18 +547,22 @@ impl Board {
             Colour::Black => (0x7000000000000000u64, 0x1C00000000000000u64),
         };
 
-        if self.get_castling(self.stm, true) && (ks_mask & self.all_pieces().0 == 0)
-            && (ks_threatened & banned.0) == 0 {
-                let src = Square::E1.relative(self.stm);
-                let dst = Square::G1.relative(self.stm);
-                move_list.add(Move::new(src, dst, MoveFlag::CastleShort));
+        if self.get_castling(self.stm, true)
+            && (ks_mask & self.all_pieces().0 == 0)
+            && (ks_threatened & banned.0) == 0
+        {
+            let src = Square::E1.relative(self.stm);
+            let dst = Square::G1.relative(self.stm);
+            move_list.add(Move::new(src, dst, MoveFlag::CastleShort));
         }
 
-        if self.get_castling(self.stm, false) && (qs_mask & self.all_pieces().0 == 0)
-            && (qs_threatened & banned.0) == 0 {
-                let src = Square::E1.relative(self.stm);
-                let dst = Square::C1.relative(self.stm);
-                move_list.add(Move::new(src, dst, MoveFlag::CastleLong));
+        if self.get_castling(self.stm, false)
+            && (qs_mask & self.all_pieces().0 == 0)
+            && (qs_threatened & banned.0) == 0
+        {
+            let src = Square::E1.relative(self.stm);
+            let dst = Square::C1.relative(self.stm);
+            move_list.add(Move::new(src, dst, MoveFlag::CastleLong));
         }
     }
 }

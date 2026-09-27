@@ -1,5 +1,6 @@
-use crate::common::colour::Colour;
 use enum_map::Enum;
+
+use crate::common::colour::Colour;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]

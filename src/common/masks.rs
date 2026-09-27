@@ -1,9 +1,18 @@
-use crate::common::direction::{
-    East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West,
-};
 use crate::common::{
     bitboard::Bitboard,
-    square::Square::{self},
+    direction::{
+        East,
+        North,
+        NorthEast,
+        NorthWest,
+        South,
+        SouthEast,
+        SouthWest,
+        West,
+    },
+    square::Square::{
+        self,
+    },
 };
 
 #[inline]
@@ -175,21 +184,76 @@ fn between_mask_test() {
             bb
         }};
     }
-    assert_eq!( between_mask(Square::A1, Square::A2), sqrs_to_bb!(Square::A2));
-    assert_eq!( between_mask(Square::A1, Square::B1), sqrs_to_bb!(Square::B1));
-    assert_eq!( between_mask(Square::A1, Square::B2), sqrs_to_bb!(Square::B2));
-    assert_eq!( between_mask(Square::A1, Square::D1), sqrs_to_bb!(Square::B1, Square::C1, Square::D1));
-    assert_eq!( between_mask(Square::H1, Square::E1), sqrs_to_bb!(Square::G1, Square::F1, Square::E1));
-    assert_eq!( between_mask(Square::A1, Square::A4), sqrs_to_bb!(Square::A2, Square::A3, Square::A4));
-    assert_eq!( between_mask(Square::H8, Square::H5), sqrs_to_bb!(Square::H7, Square::H6, Square::H5));
-    assert_eq!( between_mask(Square::A1, Square::D4), sqrs_to_bb!(Square::B2, Square::C3, Square::D4));
-    assert_eq!( between_mask(Square::H1, Square::E4), sqrs_to_bb!(Square::G2, Square::F3, Square::E4));
-    assert_eq!( between_mask(Square::H8, Square::E5), sqrs_to_bb!(Square::G7, Square::F6, Square::E5));
-    assert_eq!( between_mask(Square::A8, Square::D5), sqrs_to_bb!(Square::B7, Square::C6, Square::D5));
-    assert_eq!( between_mask(Square::A1, Square::H1), sqrs_to_bb!( Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1));
-    assert_eq!( between_mask(Square::A1, Square::A8), sqrs_to_bb!( Square::A2, Square::A3, Square::A4, Square::A5, Square::A6, Square::A7, Square::A8));
-    assert_eq!( between_mask(Square::A1, Square::C2), Bitboard::EMPTY);
-    assert_eq!( between_mask(Square::B2, Square::E3), Bitboard::EMPTY);
-    assert_eq!( between_mask(Square::A1, Square::H2), Bitboard::EMPTY);
-    assert_eq!( between_mask(Square::D4, Square::D4), Bitboard::EMPTY);
+    assert_eq!(
+        between_mask(Square::A1, Square::A2),
+        sqrs_to_bb!(Square::A2)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::B1),
+        sqrs_to_bb!(Square::B1)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::B2),
+        sqrs_to_bb!(Square::B2)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::D1),
+        sqrs_to_bb!(Square::B1, Square::C1, Square::D1)
+    );
+    assert_eq!(
+        between_mask(Square::H1, Square::E1),
+        sqrs_to_bb!(Square::G1, Square::F1, Square::E1)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::A4),
+        sqrs_to_bb!(Square::A2, Square::A3, Square::A4)
+    );
+    assert_eq!(
+        between_mask(Square::H8, Square::H5),
+        sqrs_to_bb!(Square::H7, Square::H6, Square::H5)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::D4),
+        sqrs_to_bb!(Square::B2, Square::C3, Square::D4)
+    );
+    assert_eq!(
+        between_mask(Square::H1, Square::E4),
+        sqrs_to_bb!(Square::G2, Square::F3, Square::E4)
+    );
+    assert_eq!(
+        between_mask(Square::H8, Square::E5),
+        sqrs_to_bb!(Square::G7, Square::F6, Square::E5)
+    );
+    assert_eq!(
+        between_mask(Square::A8, Square::D5),
+        sqrs_to_bb!(Square::B7, Square::C6, Square::D5)
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::H1),
+        sqrs_to_bb!(
+            Square::B1,
+            Square::C1,
+            Square::D1,
+            Square::E1,
+            Square::F1,
+            Square::G1,
+            Square::H1
+        )
+    );
+    assert_eq!(
+        between_mask(Square::A1, Square::A8),
+        sqrs_to_bb!(
+            Square::A2,
+            Square::A3,
+            Square::A4,
+            Square::A5,
+            Square::A6,
+            Square::A7,
+            Square::A8
+        )
+    );
+    assert_eq!(between_mask(Square::A1, Square::C2), Bitboard::EMPTY);
+    assert_eq!(between_mask(Square::B2, Square::E3), Bitboard::EMPTY);
+    assert_eq!(between_mask(Square::A1, Square::H2), Bitboard::EMPTY);
+    assert_eq!(between_mask(Square::D4, Square::D4), Bitboard::EMPTY);
 }

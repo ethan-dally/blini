@@ -1,5 +1,9 @@
 use enum_map::EnumMap;
-use crate::{board::board::Board, common::r#move::MoveFlag};
+
+use crate::{
+    board::board::Board,
+    common::r#move::MoveFlag,
+};
 
 #[derive(Debug, Default)]
 struct FlagsCount(pub EnumMap<MoveFlag, u32>);
@@ -40,7 +44,9 @@ impl Board {
     pub fn perft(self, depth: u8) -> u64 {
         let move_list = self.get_moves();
 
-        if depth == 0 {return 1;}
+        if depth == 0 {
+            return 1;
+        }
 
         if depth == 1 {
             let count = move_list.0.iter().len() as u64;
@@ -65,7 +71,9 @@ impl Board {
     fn perft_flags(self, depth: u8) -> (u64, FlagsCount) {
         let move_list = self.get_moves();
 
-        if depth == 0 {return (0, FlagsCount::default());}
+        if depth == 0 {
+            return (0, FlagsCount::default());
+        }
 
         if depth == 1 {
             let count = move_list.0.iter().len() as u64;
@@ -93,7 +101,8 @@ impl Board {
 #[allow(dead_code, unused_imports)]
 mod test {
     use crate::board::board::Board;
-    const KIWI_PETE_FEN: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    const KIWI_PETE_FEN: &str =
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
     macro_rules! perft {
         ($name:ident, $depth:expr, $perft_val:expr $(, #[$attr:meta])?) => {

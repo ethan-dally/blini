@@ -1,10 +1,20 @@
+use color_eyre::eyre::{
+    OptionExt,
+    Result,
+    eyre,
+};
+
 use crate::{
     board::board::Board,
     common::{
-        colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square,
+        colour::Colour,
+        direction::South,
+        file::File,
+        piece::Piece,
+        rank::Rank,
+        square::Square,
     },
 };
-use color_eyre::eyre::{OptionExt, Result, eyre};
 
 impl Board {
     pub fn parse_fen(fen: &str) -> Result<Board> {
