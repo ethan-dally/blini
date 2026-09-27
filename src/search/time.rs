@@ -14,6 +14,8 @@ pub struct TimeManager {
     hard_limit: u32,
 }
 
+#[allow(clippy::integer_division)]
+//time is in ms, so the floor divide seems like a resonable approach
 impl TimeManager {
     fn soft_limit(time: u32, increment: u32) -> u32 {
         time / 22 + increment / 2
@@ -35,8 +37,9 @@ impl TimeManager {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    // A u32 in milliseconds can hold 1.1k hours.
     pub fn poll(&self) -> TimeRemaining {
-        // A u32 can hold 1.1k hours.
         let spent = self.turn_start.elapsed().as_millis() as u32;
         if spent > self.hard_limit {
             return TimeRemaining::HardLimit;

@@ -27,6 +27,7 @@ pub enum Square {
 impl Square {
     #[inline]
     pub const fn new(rank: Rank, file: File) -> Square {
+        // 8 * 8 + 8 < 255
         let index = rank as u8 * 8 + file as u8;
         Square::try_index(index).expect("unreachable")
     }
@@ -83,7 +84,12 @@ impl Square {
         }
     }
 
+    /*
+    we *want* the wrap arounds/sign loss for the u8 guard here
+    */
     #[inline]
+    #[allow(clippy::cast_sign_loss)]
+    #[allow(clippy::cast_possible_wrap)]
     pub const fn shift<D: Direction>(self, amt: u8) -> Option<Square> {
         let file = self.file() as i8 + D::DX * amt as i8;
         let rank = self.rank() as i8 + D::DY * amt as i8;
@@ -106,9 +112,9 @@ impl Square {
 
     pub const ALL: [Square; 64] = {
         let mut sqrs = [Square::A1; 64];
-        let mut i = 0;
+        let mut i: u8 = 0;
         while i < 64 {
-            sqrs[i] = Square::unchecked_index(i as u8);
+            sqrs[i as usize] = Square::unchecked_index(i);
             i += 1;
         }
         sqrs

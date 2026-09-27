@@ -19,6 +19,7 @@ cast_possible_wrap = "warn"
 cast_sign_loss = "warn"
 cast_lossless = "warn"
 integer_division = "warn"
+module_inception = "allow"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "warn"

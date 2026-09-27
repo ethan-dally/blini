@@ -27,6 +27,7 @@ pub struct Bitboard(pub u64);
 
 impl Bitboard {
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn try_next(self) -> Option<Square> {
         Square::try_index(self.0.trailing_zeros() as u8)
     }
@@ -54,6 +55,9 @@ impl Bitboard {
         if amt > 7 {
             return Bitboard::EMPTY;
         }
+
+        // SAFETY: empty output when outside of -7, 7
+        #[allow(clippy::cast_possible_wrap)]
         let index = D::DX * amt as i8 + D::DY * 8 * amt as i8;
         Bitboard(match index.is_positive() {
             true => (self.0 & shift_mask::<D>(amt)) << index,

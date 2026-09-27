@@ -197,7 +197,11 @@ pub fn magic_table() -> &'static MagicTable {
     })
 }
 
+
+#[inline]
+#[allow(clippy::cast_possible_truncation)]
 fn get_magic_index(key: Bitboard, magic_num: u64, table_pow: usize) -> usize {
+    // when used, table_pow always smaller than 14
     (key.0.wrapping_mul(magic_num) >> (64 - table_pow)) as usize
 }
 
@@ -217,6 +221,8 @@ pub struct MagicTable {
 
 impl MagicTable {
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    // table sizes is small
     const fn orth_table_size() -> usize {
         let mut total = 0;
         let mut i = 0;
@@ -228,6 +234,8 @@ impl MagicTable {
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    // table sizes is small
     const fn diag_table_size() -> usize {
         let mut total = 0;
         let mut i = 0;
@@ -259,6 +267,9 @@ impl MagicTable {
         (self.orth_table.len() + self.diag_table.len()) * size_of::<Bitboard>()
     }
 
+
+    // SAFETY: sqr enum only holds 64 vals
+    #[allow(clippy::cast_possible_truncation)]
     fn build(diag_vals: [u64; 64], orth_vals: [u64; 64]) -> Result<MagicTable> {
         let mut orth_table: Box<[Bitboard]> =
             vec![Bitboard::EMPTY; MagicTable::orth_table_size()].into();
@@ -393,7 +404,8 @@ impl FindMagic {
 
                     thread
                         .thread_best
-                        .store(prev_best.max(dbg_i as u32), Ordering::Relaxed);
+                        .store(prev_best.max(u32::try_from(dbg_i)
+                        .expect("magics array size unexpectedly big")), Ordering::Relaxed);
 
                     thread.counted.fetch_add(1, Ordering::Relaxed);
 
@@ -465,6 +477,8 @@ impl FindMagic {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
+    //table_pow is small
     fn new(sqr: Square, is_diagonal: bool) -> FindMagic {
         let table_pow = match is_diagonal {
             true => BISHOP_TABLE_SIZES[sqr as usize],
