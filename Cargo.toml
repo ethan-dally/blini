@@ -20,6 +20,8 @@ cast_sign_loss = "warn"
 cast_lossless = "warn"
 integer_division = "warn"
 module_inception = "allow"
+undocumented_unsafe_blocks = "deny"
+multiple_unsafe_ops_per_block = "deny"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "warn"

@@ -268,7 +268,7 @@ impl MagicTable {
     }
 
 
-    // SAFETY: sqr enum only holds 64 vals
+    //sqr enum only holds 64 vals
     #[allow(clippy::cast_possible_truncation)]
     fn build(diag_vals: [u64; 64], orth_vals: [u64; 64]) -> Result<MagicTable> {
         let mut orth_table: Box<[Bitboard]> =

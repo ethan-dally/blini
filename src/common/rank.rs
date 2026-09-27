@@ -24,6 +24,7 @@ impl Rank {
         if index > 0b0000_0111 {
             return None;
         }
+        // SAFETY: guard above ensures less than 7, the size of the enum
         Some(unsafe { core::mem::transmute::<u8, Rank>(index) })
     }
 

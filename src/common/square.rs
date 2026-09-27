@@ -25,6 +25,14 @@ pub enum Square {
 }
 
 impl Square {
+
+    #[inline]
+    const fn unchecked_index(index: u8) -> Square {
+        debug_assert!(index < 64);
+        // SAFETY: only used in this file - to make sure its less than 64
+        unsafe { core::mem::transmute::<u8, Square>(index) }
+    }
+
     #[inline]
     pub const fn new(rank: Rank, file: File) -> Square {
         // 8 * 8 + 8 < 255
@@ -64,8 +72,8 @@ impl Square {
     }
 
     #[inline]
-    pub const fn unchecked_index(index: u8) -> Square {
-        unsafe { core::mem::transmute::<u8, Square>(index) }
+    pub const fn from_trailing_zeros(bb: Bitboard) -> Square {
+        Square::unchecked_index(bb.trailing_zeros())
     }
 
     #[inline]

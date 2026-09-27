@@ -51,13 +51,13 @@ impl Bitboard {
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_wrap)]
+    // empty output when outside of -7, 7
     pub const fn shift<D: Direction>(self, amt: u8) -> Bitboard {
         if amt > 7 {
             return Bitboard::EMPTY;
         }
 
-        // SAFETY: empty output when outside of -7, 7
-        #[allow(clippy::cast_possible_wrap)]
         let index = D::DX * amt as i8 + D::DY * 8 * amt as i8;
         Bitboard(match index.is_positive() {
             true => (self.0 & shift_mask::<D>(amt)) << index,
@@ -73,6 +73,13 @@ impl Bitboard {
     #[inline]
     pub const fn piece_count(self) -> u32 {
         self.0.count_ones()
+    }
+
+    #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    // bb is max 63
+    pub const fn trailing_zeros(self) -> u8 {
+        self.0.trailing_zeros() as u8
     }
 
     pub const EMPTY: Bitboard = Bitboard(0);

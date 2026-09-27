@@ -523,9 +523,7 @@ impl Board {
 
         debug_assert!(us_king.piece_count() == 1);
 
-        // SAFETY: Bitboard is u64 hence trailing_zeros max is 64
-        #[allow(clippy::cast_possible_truncation)]
-        let src = Square::unchecked_index(us_king.0.trailing_zeros() as u8);
+        let src = Square::from_trailing_zeros(us_king);
 
         let king_moves = king_mask(src) & !self.us_pieces() & !banned;
 
