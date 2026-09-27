@@ -98,7 +98,7 @@ impl ReceiveUci {
                 return None;
             }
         };
-        while let Some(mv) = uci.next() {
+        for mv in uci {
             let (raw_src, raw_dst) = mv.split_at_checked(2)?;
             let src = Square::parse(raw_src)?;
             let dst = Square::parse(raw_dst)?;

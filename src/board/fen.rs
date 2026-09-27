@@ -72,8 +72,8 @@ impl Board {
                     let piece = Piece::try_from(c).map_err(|_| eyre!("invalid piece char {c}"))?;
                     let colour = Colour::from(c.is_ascii_uppercase());
                     if piece == Piece::King {
-                        white_king += (colour == Colour::White) as u8;
-                        black_king += (colour == Colour::Black) as u8;
+                        white_king += u8::from(colour == Colour::White);
+                        black_king += u8::from(colour == Colour::Black);
                     }
                     board.set_square(sqr, colour, piece);
                     file_count += 1;
