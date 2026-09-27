@@ -2,7 +2,7 @@ use enum_map::EnumMap;
 use crate::{board::board::Board, common::r#move::MoveFlag};
 
 #[derive(Debug, Default)]
-pub(super) struct FlagsCount(pub EnumMap<MoveFlag, u32>);
+struct FlagsCount(pub EnumMap<MoveFlag, u32>);
 
 impl FlagsCount {
     #[inline]
@@ -16,13 +16,33 @@ impl FlagsCount {
             self.0[flag] += count;
         }
     }
+
+    #[inline]
+    pub fn display(&self) {
+        println!(
+            "NonCapture: {}, PawnDouble: {}, CastleShort: {}, CastleLong: {}, \
+             Promotion: {}, Capture: {}, EnPassant: {}",
+            self.0[MoveFlag::NonCapture],
+            self.0[MoveFlag::PawnDouble],
+            self.0[MoveFlag::CastleShort],
+            self.0[MoveFlag::CastleLong],
+            self.0[MoveFlag::PromotionQueen]
+                + self.0[MoveFlag::PromotionRook]
+                + self.0[MoveFlag::PromotionBishop]
+                + self.0[MoveFlag::PromotionKnight],
+            self.0[MoveFlag::Capture],
+            self.0[MoveFlag::EnPassant],
+        );
+    }
 }
 
 impl Board {
     pub fn perft(self, depth: u8) -> u64 {
         let move_list = self.get_moves();
 
-        if depth == 0 {
+        if depth == 0 {return 1;}
+
+        if depth == 1 {
             let count = move_list.0.iter().len() as u64;
             let mut move_flags = FlagsCount::default();
             for mv in move_list {
@@ -41,10 +61,13 @@ impl Board {
         count
     }
 
+    #[allow(dead_code)]
     fn perft_flags(self, depth: u8) -> (u64, FlagsCount) {
         let move_list = self.get_moves();
 
-        if depth == 0 {
+        if depth == 0 {return (0, FlagsCount::default());}
+
+        if depth == 1 {
             let count = move_list.0.iter().len() as u64;
             let mut move_flags = FlagsCount::default();
             for mv in move_list {
@@ -67,114 +90,27 @@ impl Board {
     }
 }
 
-#[test]
-fn perft_1() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .expect("fen incorrect");
-    let perft = board.perft_flags(0);
-    perft.1.display();
-    assert_eq!(perft.0, 20);
-}
+#[allow(dead_code, unused_imports)]
+mod test {
+    use crate::board::board::Board;
+    const KIWI_PETE_FEN: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
-#[test]
-fn perft_2() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .expect("fen incorrect");
-    let perft = board.perft_flags(1);
-    perft.1.display();
-    assert_eq!(perft.0, 400);
-}
-
-#[test]
-fn perft_3() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .expect("fen incorrect");
-    let perft = board.perft_flags(2);
-    perft.1.display();
-    assert_eq!(perft.0, 8902);
-}
-
-#[test]
-fn perft_4() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .expect("fen incorrect");
-    let perft = board.perft_flags(3);
-    perft.1.display();
-    assert_eq!(perft.0, 197281);
-}
-
-// #[test]
-// fn perft_5() {
-//     let board = Board::parse_fen(
-//         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-//     ).expect("fen incorrect");
-//     let perft = board.perft(4);
-//     perft.1.display();
-//     assert_eq!(perft.0, 4865609);
-// }
-
-#[test]
-fn kiwipete_1() {
-    let board =
-        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-            .expect("fen incorrect");
-    let perft = board.perft_flags(0);
-    perft.1.display();
-    assert_eq!(perft.0, 48);
-}
-
-#[test]
-fn kiwipete_2() {
-    let board =
-        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-            .expect("fen incorrect");
-    let perft = board.perft_flags(1);
-    perft.1.display();
-    assert_eq!(perft.0, 2039);
-}
-
-#[test]
-fn kiwipete_3() {
-    let board =
-        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-            .expect("fen incorrect");
-    let perft = board.perft_flags(2);
-    perft.1.display();
-    assert_eq!(perft.0, 97862);
-}
-
-#[test]
-fn kiwipete_4() {
-    let board =
-        Board::parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-            .expect("fen incorrect");
-    let perft = board.perft_flags(3);
-    perft.1.display();
-    println!("total: {}", perft.0);
-    assert_eq!(perft.0, 4085603);
-}
-
-//EDP tests
-macro_rules! epd_tests {
-    ($(($name:ident, $fen:expr, $expected:expr)),* $(,)?) => {
-        $(
+    macro_rules! perft {
+        ($name:ident, $depth:expr, $perft_val:expr $(, #[$attr:meta])?) => {
             #[test]
+            $(#[$attr])?
             fn $name() {
-                let board = Board::parse_fen($fen).expect("fen incorrect");
-                let moves = board.get_moves();
-
-                board.display();
-                moves.display();
-                moves.display_raw();
-                println!("expected: {}, got: {}", $expected, moves.0.len());
-                assert_eq!(moves.0.len(), $expected);
+                let board = Board::parse_fen(KIWI_PETE_FEN).expect("fen incorrect");
+                assert_eq!(board.perft($depth), $perft_val, "failed at depth {}", $depth)
             }
-        )*
-    };
-}
+        };
+    }
 
-//tests from https://github.com/ChrisWhittington/Chess-EPDs
-epd_tests! {
-    (epd_001, "r4nk1/p5bp/2p5/5p1P/6P1/4R1B1/K7/8 b - - 0 1", 23),
-    (epd_002, "5k2/8/1P2B3/p5P1/7r/1R6/1K6/8 w - - 0 1", 27),
+    perft!(kiwipete_1, 1, 48);
+    perft!(kiwipete_2, 2, 2039);
+    perft!(kiwipete_3, 3, 97_862);
+    perft!(kiwipete_4, 4, 4_085_603);
+    //use --ignore to test higher depths
+    perft!(kiwipete_5, 5, 193_690_690, #[ignore]);
+    perft!(kiwipete_6, 6, 8_031_647_685, #[ignore]);
 }

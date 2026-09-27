@@ -26,8 +26,8 @@ impl ReceiveUci {
     }
 
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let mut wtime: u32 = 0;
-        let mut btime: u32 = 0;
+        let mut wtime: u32 = 1000;
+        let mut btime: u32 = 1000;
         let mut winc: u32 = 0;
         let mut binc: u32 = 0;
         while let (Some(arg), Some(raw_val)) = (uci.next(), uci.next()) {
