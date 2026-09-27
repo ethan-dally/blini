@@ -197,7 +197,6 @@ pub fn magic_table() -> &'static MagicTable {
     })
 }
 
-
 #[inline]
 #[allow(clippy::cast_possible_truncation)]
 fn get_magic_index(key: Bitboard, magic_num: u64, table_pow: usize) -> usize {
@@ -267,7 +266,6 @@ impl MagicTable {
         (self.orth_table.len() + self.diag_table.len()) * size_of::<Bitboard>()
     }
 
-
     //sqr enum only holds 64 vals
     #[allow(clippy::cast_possible_truncation)]
     fn build(diag_vals: [u64; 64], orth_vals: [u64; 64]) -> Result<MagicTable> {
@@ -331,8 +329,8 @@ impl MagicTable {
         }
         Ok(MagicTable {
             orth_magics,
-            orth_table,
             diag_magics,
+            orth_table,
             diag_table,
         })
     }
@@ -402,10 +400,11 @@ impl FindMagic {
                 } else {
                     let prev_best = thread.thread_best.load(Ordering::Relaxed);
 
-                    thread
-                        .thread_best
-                        .store(prev_best.max(u32::try_from(dbg_i)
-                        .expect("magics array size unexpectedly big")), Ordering::Relaxed);
+                    thread.thread_best.store(
+                        prev_best
+                            .max(u32::try_from(dbg_i).expect("magics array size unexpectedly big")),
+                        Ordering::Relaxed,
+                    );
 
                     thread.counted.fetch_add(1, Ordering::Relaxed);
 
@@ -453,7 +452,7 @@ impl FindMagic {
             let mut search_count: u64 = 0;
             let mut best: u32 = 0;
 
-            for thread in thread_data.iter() {
+            for thread in &thread_data {
                 search_count += thread.counted.load(Ordering::Relaxed);
                 best = best.max(thread.thread_best.load(Ordering::Relaxed));
             }
@@ -461,9 +460,10 @@ impl FindMagic {
             println!(
                 "threads: {thread_count}, {}, size: {}, searched {search_count}, best {best}, to_beat: {to_beat}, elapsed: {}",
                 self.sqr,
-                match self.is_diagonal {
-                    true => "Diagonal",
-                    false => "Orthogonal",
+                if self.is_diagonal {
+                    "Diagonal"
+                } else {
+                    "Orthogonal"
                 },
                 start.elapsed().as_secs()
             );
@@ -480,9 +480,10 @@ impl FindMagic {
     #[allow(clippy::cast_possible_truncation)]
     //table_pow is small
     fn new(sqr: Square, is_diagonal: bool) -> FindMagic {
-        let table_pow = match is_diagonal {
-            true => BISHOP_TABLE_SIZES[sqr as usize],
-            false => ROOK_TABLE_SIZES[sqr as usize],
+        let table_pow = if is_diagonal {
+            BISHOP_TABLE_SIZES[sqr as usize]
+        } else {
+            ROOK_TABLE_SIZES[sqr as usize]
         };
         let table_size = 2usize.pow(table_pow as u32);
         FindMagic {
@@ -506,9 +507,10 @@ impl FindMagic {
                     return Err(eyre!("couldnt find magic {sqr}, diagonal '{is_diagonal}'"));
                 };
 
-                match is_diagonal {
-                    true => diag_list.push(magic),
-                    false => orth_list.push(magic),
+                if is_diagonal {
+                    diag_list.push(magic)
+                } else {
+                    orth_list.push(magic)
                 }
             }
         }
@@ -546,16 +548,16 @@ const ROOK_MASKS: [Bitboard; 64] = {
         let mut mask = file_bb ^ rank_bb;
 
         if sqr.file() as u8 != File::A as u8 {
-            mask &= cutout_a
+            mask &= cutout_a;
         }
         if sqr.file() as u8 != File::H as u8 {
-            mask &= cutout_h
+            mask &= cutout_h;
         }
         if sqr.rank() as u8 != Rank::One as u8 {
-            mask &= cutout_1
+            mask &= cutout_1;
         }
         if sqr.rank() as u8 != Rank::Eight as u8 {
-            mask &= cutout_8
+            mask &= cutout_8;
         }
 
         masks[index as usize] = Bitboard(mask);
@@ -630,24 +632,26 @@ fn gen_bishop_magic_keys(sqr: Square) -> ArrayVec<Bitboard, MAX_KEYS> {
 }
 
 fn gen_key_val_pairs(sqr: Square, is_diagonal: bool) -> HashMap<Bitboard, Bitboard> {
-    let dirs: [fn(Square, u8) -> Option<Square>; 4] = match is_diagonal {
-        true => [
+    let dirs: [fn(Square, u8) -> Option<Square>; 4] = if is_diagonal {
+        [
             Square::shift::<NorthEast>,
             Square::shift::<SouthEast>,
             Square::shift::<SouthWest>,
             Square::shift::<NorthWest>,
-        ],
-        false => [
+        ]
+    } else {
+        [
             Square::shift::<North>,
             Square::shift::<East>,
             Square::shift::<South>,
             Square::shift::<West>,
-        ],
+        ]
     };
 
-    let magic_keys = match is_diagonal {
-        true => gen_bishop_magic_keys(sqr),
-        false => gen_rook_magic_keys(sqr),
+    let magic_keys = if is_diagonal {
+        gen_bishop_magic_keys(sqr)
+    } else {
+        gen_rook_magic_keys(sqr)
     };
     let mut map: HashMap<Bitboard, Bitboard> = HashMap::new();
 

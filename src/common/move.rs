@@ -115,7 +115,7 @@ impl MoveList {
         let mut src_piece_array = [0u8; 64];
         let mut dst_piece_array = [0u8; 64];
 
-        for mv in self.0.iter() {
+        for mv in &self.0 {
             src_piece_array[mv.src as usize] += 1;
             dst_piece_array[mv.dst as usize] += 1;
         }
@@ -146,7 +146,7 @@ impl MoveList {
             println!();
         }
 
-        println!("count: {}", self.0.len())
+        println!("count: {}", self.0.len());
     }
 }
 

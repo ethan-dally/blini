@@ -131,10 +131,10 @@ impl Board {
 
         let checkmask_pawns = (us_king
             .relative_shift::<NorthEast>(self.stm, 1)
-            .map_or_default(|s| s.to_bb())
+            .map_or_default(super::super::common::square::Square::to_bb)
             | us_king
                 .relative_shift::<NorthWest>(self.stm, 1)
-                .map_or_default(|s| s.to_bb()))
+                .map_or_default(super::super::common::square::Square::to_bb))
             & self.pieces(Piece::Pawn)
             & self.them_pieces();
 
@@ -250,8 +250,12 @@ impl Board {
         //en passant
         //no discovered pin check needed since we are already in a pin
         if let Some(ep_sqr) = self.en_passant {
-            let east = ep_sqr.shift::<East>(1).map_or_default(|s| s.to_bb());
-            let west = ep_sqr.shift::<West>(1).map_or_default(|s| s.to_bb());
+            let east = ep_sqr
+                .shift::<East>(1)
+                .map_or_default(super::super::common::square::Square::to_bb);
+            let west = ep_sqr
+                .shift::<West>(1)
+                .map_or_default(super::super::common::square::Square::to_bb);
             let en_passant = diag_pawns & (east | west);
             for src in en_passant.iter() {
                 let dst = ep_sqr
@@ -363,8 +367,12 @@ impl Board {
 
         //en passant
         if let Some(ep_sqr) = self.en_passant {
-            let east = ep_sqr.shift::<East>(1).map_or_default(|s| s.to_bb());
-            let west = ep_sqr.shift::<West>(1).map_or_default(|s| s.to_bb());
+            let east = ep_sqr
+                .shift::<East>(1)
+                .map_or_default(super::super::common::square::Square::to_bb);
+            let west = ep_sqr
+                .shift::<West>(1)
+                .map_or_default(super::super::common::square::Square::to_bb);
             let en_passant = us_pawns & (east | west) & checkmask;
 
             for src in en_passant.iter() {
@@ -376,15 +384,13 @@ impl Board {
 
                 //TODO: un-grossify this slop
                 //we mostly avoid doing the legality check by only doing it when were on rank 5
-                match us_king.rank() == relevant_rank {
-                    false => {
-                        let dst = ep_sqr
-                            .relative_shift::<North>(self.stm, 1)
-                            .expect("en passant dest square must exist");
-                        move_list.add(Move::new(src, dst, MoveFlag::EnPassant));
-                    }
-
-                    true => 'legality_check: {
+                if us_king.rank() != relevant_rank {
+                    let dst = ep_sqr
+                        .relative_shift::<North>(self.stm, 1)
+                        .expect("en passant dest square must exist");
+                    move_list.add(Move::new(src, dst, MoveFlag::EnPassant));
+                } else {
+                    'legality_check: {
                         let slider_pieces = (self.pieces(Piece::Bishop)
                             | self.pieces(Piece::Queen)
                             | self.pieces(Piece::Rook))
@@ -521,7 +527,7 @@ impl Board {
     fn king(&self, move_list: &mut MoveList, banned: Bitboard) {
         let us_king = self.pieces(Piece::King) & self.us_pieces();
 
-        debug_assert!(us_king.piece_count() == 1);
+        debug_assert_eq!(us_king.piece_count(), 1);
 
         let src = Square::from_trailing_zeros(us_king);
 

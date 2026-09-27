@@ -55,7 +55,7 @@ impl Board {
         self.mailbox[sqr] = Some((piece, colour));
     }
 
-    /// assumption of piece existing, since used in make_move code
+    /// assumption of piece existing, since used in `make_move` code
     #[inline]
     pub fn remove_piece(&mut self, sqr: Square) -> Piece {
         let (piece, colour) = self.mailbox[sqr]

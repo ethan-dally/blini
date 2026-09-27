@@ -25,20 +25,17 @@ impl Display for Board {
             write!(f, "║  ")?;
             for file in File::ALL {
                 let sqr = Square::new(*rank, file);
-                let piece = self
-                    .mailbox(sqr)
-                    .map(|p| {
-                        if p.1 == Colour::White {
-                            char::from(p.0).to_ascii_uppercase()
-                        } else {
-                            char::from(p.0).to_ascii_lowercase()
-                        }
-                    })
-                    .unwrap_or(' ');
+                let piece = self.mailbox(sqr).map_or(' ', |p| {
+                    if p.1 == Colour::White {
+                        char::from(p.0).to_ascii_uppercase()
+                    } else {
+                        char::from(p.0).to_ascii_lowercase()
+                    }
+                });
                 if file == File::H {
                     write!(f, "{piece}  ")?;
                 } else {
-                    write!(f, "{piece}  │  ",)?;
+                    write!(f, "{piece}  │  ")?;
                 }
             }
             writeln!(f, "║ {}", char::from(*rank))?;

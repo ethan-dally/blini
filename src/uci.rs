@@ -163,9 +163,7 @@ impl Engine {
 
     fn do_uci_command(&mut self, uci: ReceiveUci) -> Result<Abort> {
         match uci {
-            ReceiveUci::Quit => {
-                Ok(Abort::Yes)
-            },
+            ReceiveUci::Quit => Ok(Abort::Yes),
             ReceiveUci::Uci => {
                 println!("id name ???");
                 println!("id author Drex");

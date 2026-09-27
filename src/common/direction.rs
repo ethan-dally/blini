@@ -66,15 +66,17 @@ impl Direction for SouthWest {
 #[allow(clippy::cast_sign_loss)]
 pub const fn shift_mask<D: Direction>(amt: u8) -> u64 {
     // DX and DY always less than 8
-    let horizontal = match D::DX.is_positive() {
-        true => 0xFFu8 >> (D::DX as u8 * amt),
-        false => 0xFFu8 << (D::DX.unsigned_abs() * amt),
+    let horizontal = if D::DX.is_positive() {
+        0xFFu8 >> (D::DX as u8 * amt)
+    } else {
+        0xFFu8 << (D::DX.unsigned_abs() * amt)
     };
     let horizontal = horizontal as u64 * 0x0101010101010101;
 
-    match D::DY.is_positive() {
-        true => horizontal >> (D::DY as u8 * amt * 8),
-        false => horizontal << (D::DY.unsigned_abs() * amt * 8),
+    if D::DY.is_positive() {
+        horizontal >> (D::DY as u8 * amt * 8)
+    } else {
+        horizontal << (D::DY.unsigned_abs() * amt * 8)
     }
 }
 

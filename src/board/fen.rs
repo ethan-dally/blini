@@ -53,8 +53,7 @@ impl Board {
         let mut white_king = 0;
         let mut black_king = 0;
         for (rank, row) in pieces.split('/').enumerate() {
-            let rank_index = u8::try_from(7 - rank)
-                .map_err(|_|{eyre!("invalid FEN rank count")})?;
+            let rank_index = u8::try_from(7 - rank).map_err(|_| eyre!("invalid FEN rank count"))?;
             let Some(rank) = Rank::try_index(rank_index) else {
                 return Err(eyre!("FEN has invalid rank"));
             };

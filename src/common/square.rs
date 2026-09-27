@@ -25,7 +25,6 @@ pub enum Square {
 }
 
 impl Square {
-
     #[inline]
     const fn unchecked_index(index: u8) -> Square {
         debug_assert!(index < 64);

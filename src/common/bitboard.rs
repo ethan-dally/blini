@@ -59,9 +59,10 @@ impl Bitboard {
         }
 
         let index = D::DX * amt as i8 + D::DY * 8 * amt as i8;
-        Bitboard(match index.is_positive() {
-            true => (self.0 & shift_mask::<D>(amt)) << index,
-            false => (self.0 & shift_mask::<D>(amt)) >> index.abs(),
+        Bitboard(if index.is_positive() {
+            (self.0 & shift_mask::<D>(amt)) << index
+        } else {
+            (self.0 & shift_mask::<D>(amt)) >> index.abs()
         })
     }
 
@@ -138,14 +139,7 @@ impl Display for Bitboard {
         for rank in Rank::ALL.iter().rev() {
             for file in File::ALL {
                 let sqr = Square::new(*rank, file);
-                write!(
-                    f,
-                    "{}",
-                    match self.has(sqr) {
-                        false => " ·",
-                        true => " X",
-                    }
-                )?;
+                write!(f, "{}", if !self.has(sqr) { " ·" } else { " X" })?;
             }
             writeln!(f)?;
         }

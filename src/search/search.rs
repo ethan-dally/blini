@@ -1,9 +1,14 @@
 use std::{
-    cmp::max, sync::{
-        Arc, mpsc::{
-            Receiver, Sender, channel,
+    cmp::max,
+    sync::{
+        Arc,
+        mpsc::{
+            Receiver,
+            Sender,
+            channel,
         },
-    }, thread::{
+    },
+    thread::{
         self,
         JoinHandle,
     },
@@ -35,18 +40,18 @@ impl Search {
         let (sender, receiver) = channel::<WorkerCommand>();
         let worker_thread = thread::spawn(|| Search::worker_loop(receiver));
         Search {
-            sender,
             worker_thread,
+            sender,
         }
     }
 
     fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<(), SearchError> {
-        for cmd in cmds.iter() {
+        for cmd in &cmds {
             match cmd {
                 WorkerCommand::Search(shared) => {
                     let mv = negamax(shared.clone())?;
                     println!("{}", mv.uci());
-                },
+                }
                 WorkerCommand::Stop => {
                     break;
                 }
@@ -61,16 +66,17 @@ impl Search {
         data arc
         */
         let shared_data = SharedData::new(board, time_manager);
-        self.sender.send(WorkerCommand::Search(shared_data))
-            .map_err(|_|{SearchError::Start})?;
+        self.sender
+            .send(WorkerCommand::Search(shared_data))
+            .map_err(|_| SearchError::Start)?;
         Ok(())
     }
 
     pub fn stop(self) -> Result<(), SearchError> {
-        self.sender.send(WorkerCommand::Stop)
-            .map_err(|_|{SearchError::Stop})?;
-        self.worker_thread.join()
-            .map_err(|_|{SearchError::Stop})?
+        self.sender
+            .send(WorkerCommand::Stop)
+            .map_err(|_| SearchError::Stop)?;
+        self.worker_thread.join().map_err(|_| SearchError::Stop)?
     }
 }
 
@@ -83,8 +89,8 @@ struct SharedData {
 impl SharedData {
     fn new(board: Board, time_manager: TimeManager) -> Arc<SharedData> {
         Arc::new(SharedData {
-            time_manager,
             board,
+            time_manager,
         })
     }
 }
@@ -102,7 +108,7 @@ pub enum SearchError {
     #[error("failed to start search worker")]
     Start,
     #[error("failed to send stop command to worker")]
-    Stop
+    Stop,
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord)]

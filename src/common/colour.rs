@@ -30,10 +30,7 @@ impl Colour {
 
 impl From<bool> for Colour {
     fn from(value: bool) -> Self {
-        match value {
-            true => Colour::White,
-            false => Colour::Black,
-        }
+        if value { Colour::White } else { Colour::Black }
     }
 }
 
