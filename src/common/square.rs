@@ -3,11 +3,7 @@ use std::fmt;
 use enum_map::Enum;
 
 use crate::common::{
-    bitboard::Bitboard,
-    colour::Colour,
-    direction::Direction,
-    file::File,
-    rank::Rank,
+    bitboard::Bitboard, colour::Colour, direction::Direction, file::File, rank::Rank,
 };
 
 #[repr(u8)]

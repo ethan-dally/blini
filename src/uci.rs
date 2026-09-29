@@ -1,29 +1,15 @@
 use std::{
-    io::{
-        self,
-        Write,
-    },
+    io::{self, Write},
     str::SplitWhitespace,
 };
 
-use color_eyre::eyre::{
-    Ok,
-    OptionExt,
-    Result,
-    eyre,
-};
+use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
 
 use crate::{
     board::board::Board,
-    common::{
-        colour::Colour,
-        square::Square,
-    },
+    common::{colour::Colour, square::Square},
     search::{
-        search::{
-            Search,
-            SearchStdOut,
-        },
+        search::{Search, SearchStdOut},
         time::TimeManager,
     },
 };

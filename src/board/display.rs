@@ -2,12 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     board::board::Board,
-    common::{
-        colour::Colour,
-        file::File,
-        rank::Rank,
-        square::Square,
-    },
+    common::{colour::Colour, file::File, rank::Rank, square::Square},
 };
 
 impl Board {

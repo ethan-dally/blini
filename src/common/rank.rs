@@ -1,9 +1,6 @@
 use std::fmt;
 
-use crate::common::{
-    bitboard::Bitboard,
-    colour::Colour,
-};
+use crate::common::{bitboard::Bitboard, colour::Colour};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

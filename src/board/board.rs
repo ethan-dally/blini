@@ -1,11 +1,6 @@
 use enum_map::EnumMap;
 
-use crate::common::{
-    bitboard::Bitboard,
-    colour::Colour,
-    piece::Piece,
-    square::Square,
-};
+use crate::common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square};
 
 #[derive(Debug, Default, Clone)]
 pub struct Board {

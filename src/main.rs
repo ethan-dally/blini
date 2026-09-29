@@ -1,9 +1,6 @@
 use color_eyre::Result;
 
-use crate::{
-    common::magics::magic_table,
-    uci::Engine,
-};
+use crate::{common::magics::magic_table, uci::Engine};
 
 mod bench;
 mod board;

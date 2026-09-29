@@ -1,12 +1,7 @@
 use arrayvec::ArrayVec;
 use enum_map::Enum;
 
-use crate::common::{
-    file::File,
-    piece::Piece,
-    rank::Rank,
-    square::Square,
-};
+use crate::common::{file::File, piece::Piece, rank::Rank, square::Square};
 
 const MAX_MOVES: usize = 218;
 

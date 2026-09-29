@@ -2,10 +2,7 @@ use crate::{
     board::board::Board,
     common::{
         colour::Colour,
-        r#move::{
-            Move,
-            MoveFlag,
-        },
+        r#move::{Move, MoveFlag},
         piece::Piece,
         rank::Rank,
         square::Square,

@@ -1,18 +1,7 @@
 use crate::common::{
     bitboard::Bitboard,
-    direction::{
-        East,
-        North,
-        NorthEast,
-        NorthWest,
-        South,
-        SouthEast,
-        SouthWest,
-        West,
-    },
-    square::Square::{
-        self,
-    },
+    direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West},
+    square::Square::{self},
 };
 
 #[inline]

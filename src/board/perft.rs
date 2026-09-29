@@ -1,9 +1,6 @@
 use enum_map::EnumMap;
 
-use crate::{
-    board::board::Board,
-    common::r#move::MoveFlag,
-};
+use crate::{board::board::Board, common::r#move::MoveFlag};
 
 #[derive(Debug, Default)]
 struct FlagsCount(pub EnumMap<MoveFlag, u32>);

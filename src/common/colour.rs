@@ -1,7 +1,4 @@
-use std::{
-    fmt,
-    ops::Not,
-};
+use std::{fmt, ops::Not};
 
 use enum_map::Enum;
 

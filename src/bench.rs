@@ -1,22 +1,13 @@
 use std::{
     sync::atomic::Ordering,
-    time::{
-        Duration,
-        Instant,
-    },
+    time::{Duration, Instant},
 };
 
-use color_eyre::eyre::{
-    Result,
-    eyre,
-};
+use color_eyre::eyre::{Result, eyre};
 
 use crate::{
     board::board::Board,
-    search::{
-        search::SearchStdOut,
-        time::TimeManager,
-    },
+    search::{search::SearchStdOut, time::TimeManager},
     uci::Engine,
 };
 

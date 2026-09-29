@@ -2,35 +2,16 @@ use std::{
     cmp::max,
     sync::{
         Arc,
-        atomic::{
-            AtomicU8,
-            AtomicU64,
-            Ordering,
-        },
-        mpsc::{
-            self,
-            Receiver,
-            Sender,
-            channel,
-        },
+        atomic::{AtomicU8, AtomicU64, Ordering},
+        mpsc::{self, Receiver, Sender, channel},
     },
-    thread::{
-        self,
-        JoinHandle,
-    },
+    thread::{self, JoinHandle},
 };
 
-use rand::{
-    RngExt,
-    rngs::ThreadRng,
-};
+use rand::{RngExt, rngs::ThreadRng};
 use thiserror::Error;
 
-use crate::{
-    board::board::Board,
-    common::r#move::Move,
-    search::time::TimeManager,
-};
+use crate::{board::board::Board, common::r#move::Move, search::time::TimeManager};
 
 #[derive(Debug)]
 pub struct Search {

@@ -2,42 +2,21 @@ use core::time;
 use std::{
     collections::HashMap,
     sync::{
-        Arc,
-        OnceLock,
-        atomic::{
-            AtomicBool,
-            AtomicU32,
-            AtomicU64,
-            Ordering,
-        },
+        Arc, OnceLock,
+        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
         mpsc,
     },
-    thread::{
-        self,
-    },
+    thread::{self},
     time::Instant,
 };
 
 use arrayvec::ArrayVec;
-use color_eyre::eyre::{
-    OptionExt,
-    Result,
-    eyre,
-};
+use color_eyre::eyre::{OptionExt, Result, eyre};
 use rand::RngExt;
 
 use crate::common::{
     bitboard::Bitboard,
-    direction::{
-        East,
-        North,
-        NorthEast,
-        NorthWest,
-        South,
-        SouthEast,
-        SouthWest,
-        West,
-    },
+    direction::{East, North, NorthEast, NorthWest, South, SouthEast, SouthWest, West},
     file::File,
     rank::Rank,
     square::Square,
