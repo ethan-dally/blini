@@ -14,14 +14,11 @@ use color_eyre::eyre::{
 };
 
 use crate::{
-    board::board::Board,
-    common::{
+    board::board::Board, common::{
         colour::Colour,
         square::Square,
-    },
-    search::{
-        search::Search,
-        time::TimeManager,
+    }, search::{
+        search::{Search, SearchStdOut}, time::TimeManager,
     },
 };
 
@@ -38,6 +35,7 @@ enum ReceiveUci {
     Uci,
     UciNewGame,
     IsReady,
+    Bench,
 }
 
 impl ReceiveUci {
@@ -49,6 +47,7 @@ impl ReceiveUci {
             "uci" => Some(ReceiveUci::Uci),
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
             "isready" => Some(ReceiveUci::IsReady),
+            "bench" => Some(ReceiveUci::Bench),
             _ => None,
         }
     }
@@ -117,8 +116,8 @@ pub enum Abort {
 
 #[derive(Debug)]
 pub struct Engine {
-    position: Option<Board>,
-    search: Search,
+    pub position: Option<Board>,
+    pub search: Search,
 }
 
 impl Engine {
@@ -132,7 +131,7 @@ impl Engine {
     pub fn run(&mut self) -> Result<()> {
         let args = std::env::args().skip(1).collect::<Vec<String>>();
         if args == vec!["bench".to_string()] {
-            Engine::run_bench()?;
+            self.run_bench();
         } else if args.is_empty() {
             self.run_uci()?;
         } else {
@@ -182,6 +181,10 @@ impl Engine {
                 *self = Engine::default();
                 Ok(Abort::No)
             }
+            ReceiveUci::Bench => {
+                self.run_bench()?;
+                Ok(Abort::No)
+            },
             ReceiveUci::Go {
                 wtime,
                 btime,
@@ -196,8 +199,9 @@ impl Engine {
                     Colour::Black => (btime, binc),
                     Colour::White => (wtime, winc),
                 };
-                let time_manager = TimeManager::new(time, increment);
-                self.search.start_search(board, time_manager)?;
+                let time_manager = TimeManager::new_time(time, increment);
+                let output = SearchStdOut::BestMove;
+                self.search.start_search(board, time_manager, output)?;
                 Ok(Abort::No)
             }
         }
