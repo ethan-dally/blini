@@ -14,11 +14,17 @@ use color_eyre::eyre::{
 };
 
 use crate::{
-    board::board::Board, common::{
+    board::board::Board,
+    common::{
         colour::Colour,
         square::Square,
-    }, search::{
-        search::{Search, SearchStdOut}, time::TimeManager,
+    },
+    search::{
+        search::{
+            Search,
+            SearchStdOut,
+        },
+        time::TimeManager,
     },
 };
 
@@ -131,7 +137,7 @@ impl Engine {
     pub fn run(&mut self) -> Result<()> {
         let args = std::env::args().skip(1).collect::<Vec<String>>();
         if args == vec!["bench".to_string()] {
-            self.run_bench();
+            self.run_bench()?;
         } else if args.is_empty() {
             self.run_uci()?;
         } else {
@@ -184,7 +190,7 @@ impl Engine {
             ReceiveUci::Bench => {
                 self.run_bench()?;
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::Go {
                 wtime,
                 btime,

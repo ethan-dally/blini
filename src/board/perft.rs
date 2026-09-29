@@ -41,6 +41,8 @@ impl FlagsCount {
 }
 
 impl Board {
+    #[allow(dead_code)]
+    // TODO: hook up perft into the engine
     pub fn perft(self, depth: u8) -> u64 {
         let move_list = self.get_moves();
 

@@ -1,12 +1,23 @@
 use std::{
-    cmp::max, sync::{
-        Arc, Mutex, atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering}, mpsc::{
-            self, Receiver, Sender, channel,
+    cmp::max,
+    sync::{
+        Arc,
+        atomic::{
+            AtomicU8,
+            AtomicU64,
+            Ordering,
         },
-    }, thread::{
+        mpsc::{
+            self,
+            Receiver,
+            Sender,
+            channel,
+        },
+    },
+    thread::{
         self,
         JoinHandle,
-    }
+    },
 };
 
 use rand::{
@@ -18,9 +29,7 @@ use thiserror::Error;
 use crate::{
     board::board::Board,
     common::r#move::Move,
-    search::time::{
-        TimeManager,
-    },
+    search::time::TimeManager,
 };
 
 #[derive(Debug)]
@@ -30,7 +39,6 @@ pub struct Search {
 }
 
 impl Search {
-
     pub fn new() -> Search {
         let (sender, receiver) = channel::<WorkerCommand>();
         let worker_thread = thread::spawn(|| Search::worker_loop(receiver));
@@ -43,21 +51,26 @@ impl Search {
     fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<(), SearchError> {
         for cmd in &cmds {
             match cmd {
-                WorkerCommand::Search((shared ,output)) => {
+                WorkerCommand::Search((shared, output)) => {
                     negamax(shared.clone(), output)?;
-                },
+                }
                 WorkerCommand::Stop => {
                     break;
-                },
-                WorkerCommand::CallerWait(sender)=> {
-                    sender.send(()).map_err(|_|{SearchError::CallerWait})?;
+                }
+                WorkerCommand::CallerWait(sender) => {
+                    sender.send(()).map_err(|_| SearchError::CallerWait)?;
                 }
             }
         }
         Ok(())
     }
 
-    pub fn start_search(&self, board: Board, time_manager: TimeManager, output: SearchStdOut) -> Result<Arc<SharedData>, SearchError> {
+    pub fn start_search(
+        &self,
+        board: Board,
+        time_manager: TimeManager,
+        output: SearchStdOut,
+    ) -> Result<Arc<SharedData>, SearchError> {
         /*
         later for multiple threads here would be the place to clone the shared
         data arc
@@ -74,7 +87,7 @@ impl Search {
         self.sender
             .send(WorkerCommand::CallerWait(sender))
             .map_err(|_| SearchError::CallerWait)?;
-        reciever.recv().map_err(|_|{SearchError::CallerWait})?;
+        reciever.recv().map_err(|_| SearchError::CallerWait)?;
         Ok(())
     }
 
@@ -126,8 +139,6 @@ pub enum SearchError {
     SendCommand,
     #[error("failed to send stop command to worker")]
     Stop,
-    #[error("Poisioned Mutex found while updating shared data")]
-    UpdatingSharedData,
     #[error("Couldnt wait for the worker thread")]
     CallerWait,
 }
@@ -181,7 +192,8 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         for mv in moves.clone() {
             let mut new_board = shared.board.clone();
             new_board.do_move(mv);
-            let Some(score) = negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared) else {
+            let Some(score) = negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared)
+            else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
                 if output == SearchStdOut::BestMove {
@@ -229,7 +241,6 @@ fn negamax_recursion(
     node_count: &mut u64,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
-
     if depth == 0 {
         *node_count += 1;
         return Some(random_eval(board, rng));
@@ -239,10 +250,9 @@ fn negamax_recursion(
     let mut best_score = Score::new();
 
     for mv in moves {
-        if (*node_count % 0x400 == 0) && (
-            shared.time_manager.hard_limit() ||
-            shared.time_manager.node_limit(*node_count)
-        ) {
+        if (*node_count).is_multiple_of(0x400)
+            && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
+        {
             return None;
         }
         let mut new_board = board.clone();

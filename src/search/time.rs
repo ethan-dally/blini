@@ -10,7 +10,6 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-
     pub fn new_time(time: u32, increment: u32) -> TimeManager {
         let limit_soft_time = TimeManager::soft_time(time, increment);
         let limit_hard_time = TimeManager::hard_time(time, increment);
@@ -20,7 +19,7 @@ impl TimeManager {
             limit_soft_time: Some(limit_soft_time),
             limit_hard_time: Some(limit_hard_time),
             limit_max_nodes: None,
-            limit_max_depth: None
+            limit_max_depth: None,
         }
     }
 
@@ -30,7 +29,7 @@ impl TimeManager {
             limit_soft_time: None,
             limit_hard_time: None,
             limit_max_nodes: None,
-            limit_max_depth: Some(depth)
+            limit_max_depth: Some(depth),
         }
     }
 
@@ -82,5 +81,4 @@ impl TimeManager {
     fn hard_time(time: u32, increment: u32) -> u32 {
         time / 17 + increment / 2
     }
-
 }
