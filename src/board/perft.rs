@@ -1,6 +1,8 @@
+use std::time::Instant;
+
 use enum_map::EnumMap;
 
-use crate::{board::board::Board, common::r#move::MoveFlag};
+use crate::{board::board::Board, common::r#move::MoveFlag, uci::Engine};
 
 #[derive(Debug, Default)]
 struct FlagsCount(pub EnumMap<MoveFlag, u32>);
@@ -37,10 +39,24 @@ impl FlagsCount {
     }
 }
 
+impl Engine {
+    pub fn run_perft(board: Board, depth: u8) {
+        let time = Instant::now();
+        let total_nodes = board.perft(depth);
+        let total_time = time.elapsed().as_millis();
+        if total_time == 0 {
+            println!("nodes {total_nodes} time {total_time} nps ???");
+            return;
+        }
+        let nps = (u128::from(total_nodes) * 1000u128).div_ceil(total_time);
+        println!("nodes {total_nodes} time {total_time} nps {nps}");
+    }
+}
+
 impl Board {
-    #[allow(dead_code)]
-    // TODO: hook up perft into the engine
-    pub fn perft(self, depth: u8) -> u64 {
+
+    #[inline]
+    fn perft(self, depth: u8) -> u64 {
         let move_list = self.get_moves();
 
         if depth == 0 {
@@ -49,10 +65,6 @@ impl Board {
 
         if depth == 1 {
             let count = move_list.0.iter().len() as u64;
-            let mut move_flags = FlagsCount::default();
-            for mv in move_list {
-                move_flags.add(mv.flag());
-            }
             return count;
         }
 
@@ -67,6 +79,7 @@ impl Board {
     }
 
     #[allow(dead_code)]
+    #[inline]
     fn perft_flags(self, depth: u8) -> (u64, FlagsCount) {
         let move_list = self.get_moves();
 

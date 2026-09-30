@@ -37,10 +37,9 @@ impl Engine {
 
         let mut total_time = Duration::ZERO;
         let mut total_nodes = 0u64;
-        let time_manager = TimeManager::new_depth(DEPTH);
 
         for board in boards {
-            let time_manager = time_manager.clone();
+            let time_manager = TimeManager::new(Some(DEPTH), None, None);
             let time = Instant::now();
             let data = self
                 .search

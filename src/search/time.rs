@@ -1,42 +1,48 @@
-use std::time::Instant;
+use std::{sync::atomic::{AtomicBool, Ordering}, time::Instant};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TimeManager {
     turn_start: Instant,
     limit_max_depth: Option<u8>,
     limit_max_nodes: Option<u64>,
     limit_soft_time: Option<u32>,
     limit_hard_time: Option<u32>,
+    stop: AtomicBool,
 }
 
 impl TimeManager {
-    pub fn new_time(time: u32, increment: u32) -> TimeManager {
-        let limit_soft_time = TimeManager::soft_time(time, increment);
-        let limit_hard_time = TimeManager::hard_time(time, increment);
-        debug_assert!(limit_soft_time < limit_hard_time);
-        TimeManager {
-            turn_start: Instant::now(),
-            limit_soft_time: Some(limit_soft_time),
-            limit_hard_time: Some(limit_hard_time),
-            limit_max_nodes: None,
-            limit_max_depth: None,
+
+    #[inline]
+    pub fn new(depth: Option<u8>, nodes: Option<u64>, time_and_inc: Option<(u32, u32)>) -> TimeManager {
+        let mut limit_soft_time = None;
+        let mut limit_hard_time = None;
+        if let Some((time, inc)) = time_and_inc {
+            limit_soft_time = Some(TimeManager::soft_time(time, inc));
+            limit_hard_time = Some(TimeManager::hard_time(time, inc));
         }
+        let tm = TimeManager {
+            turn_start: Instant::now(),
+            limit_max_nodes: nodes,
+            limit_max_depth: depth,
+            limit_soft_time, 
+            limit_hard_time, 
+            stop: AtomicBool::new(false)
+        };
+        tm
     }
 
-    pub fn new_depth(depth: u8) -> TimeManager {
-        TimeManager {
-            turn_start: Instant::now(),
-            limit_soft_time: None,
-            limit_hard_time: None,
-            limit_max_nodes: None,
-            limit_max_depth: Some(depth),
-        }
+    #[inline]
+    pub fn stop(&self) {
+        self.stop.swap(true, Ordering::Relaxed);
     }
 
     #[inline]
     #[allow(clippy::cast_possible_truncation)]
     // A u32 in milliseconds can hold 1.1k hours.
     pub fn soft_limit(&self) -> bool {
+        if self.stop.load(Ordering::Relaxed) {
+            return true;
+        }
         let Some(limit) = self.limit_soft_time else {
             return false;
         };
@@ -48,6 +54,9 @@ impl TimeManager {
     #[allow(clippy::cast_possible_truncation)]
     // A u32 in milliseconds can hold 1.1k hours.
     pub fn hard_limit(&self) -> bool {
+        if self.stop.load(Ordering::Relaxed) {
+            return true;
+        }
         let Some(limit) = self.limit_hard_time else {
             return false;
         };

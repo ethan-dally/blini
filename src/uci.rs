@@ -1,6 +1,5 @@
 use std::{
-    io::{self, Write},
-    str::SplitWhitespace,
+    io::{self, Write}, str::SplitWhitespace,
 };
 
 use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
@@ -17,63 +16,100 @@ use crate::{
 #[derive(Debug)]
 enum ReceiveUci {
     Go {
-        wtime: u32,
-        btime: u32,
-        winc: u32,
-        binc: u32,
+        wtime: Option<u32>,
+        btime: Option<u32>,
+        winc:  Option<u32>,
+        binc:  Option<u32>,
+        depth: Option<u8>,
     },
+    Stop,
     Position(Board),
     Quit,
     Uci,
     UciNewGame,
     IsReady,
     Bench,
+    Perft{depth: u8, fen: Option<String>},
 }
 
 impl ReceiveUci {
+
     fn parse(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         match uci.next()?.to_ascii_lowercase().as_str() {
             "go" => ReceiveUci::parse_go(uci),
+            "stop" => Some(ReceiveUci::Stop),
             "position" => ReceiveUci::parse_pos(uci),
             "quit" => Some(ReceiveUci::Quit),
             "uci" => Some(ReceiveUci::Uci),
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
             "isready" => Some(ReceiveUci::IsReady),
             "bench" => Some(ReceiveUci::Bench),
+            "perft" => ReceiveUci::parse_perft(uci),
             _ => None,
         }
     }
 
+    fn parse_perft(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
+        let (Some(depth), fen_opt, None) = (uci.next(), uci.next(), uci.next()) else {
+            return None;
+        };
+        let depth = depth.parse::<u8>().ok()?;
+        return Some(ReceiveUci::Perft{depth, fen: fen_opt.map(|s|{s.to_string()})});
+    }
+
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let mut wtime: u32 = 1000;
-        let mut btime: u32 = 1000;
-        let mut winc: u32 = 0;
-        let mut binc: u32 = 0;
-        while let (Some(arg), Some(raw_val)) = (uci.next(), uci.next()) {
+        //reasonable defaults
+        let mut wtime: Option<u32> = Some(1000);
+        let mut btime: Option<u32> = Some(1000);
+        let mut winc:  Option<u32> = Some(0);
+        let mut binc:  Option<u32> = Some(0);
+        let mut depth: Option<u8>  = None;
+        while let (Some(arg), raw_val) = (uci.next(), uci.next()) {
+
+            // TODO: fix that it works weird if you put "infinite" as like the 3rd argument
+
+            if arg == "infinite" {
+                wtime = None;
+                btime = None;
+                winc = None;
+                binc = None;
+                depth = None;
+                break;
+            }
+
+            let Some(raw_val) = raw_val else {
+                break;
+            };
+
             let val = raw_val.parse::<u32>().ok()?;
             match arg {
                 "wtime" => {
-                    wtime = val;
+                    wtime = Some(val);
                 }
                 "btime" => {
-                    btime = val;
+                    btime = Some(val);
                 }
                 "winc" => {
-                    winc = val;
+                    winc = Some(val);
                 }
                 "binc" => {
-                    binc = val;
+                    binc = Some(val);
+                }
+                "depth" => {
+                    depth = Some(u8::try_from(val).ok()?);
                 }
                 _ => {
                     return None;
                 }
             }
         }
+
         Some(ReceiveUci::Go {
             wtime,
             btime,
             winc,
             binc,
+            depth
         })
     }
 
@@ -89,6 +125,7 @@ impl ReceiveUci {
                 return None;
             }
         };
+
         for mv in uci {
             let (raw_src, raw_dst) = mv.split_at_checked(2)?;
             let src = Square::parse(raw_src)?;
@@ -182,25 +219,38 @@ impl Engine {
                 btime,
                 winc,
                 binc,
+                depth,
             } => {
                 let board = self
                     .position
                     .clone()
                     .ok_or_eyre("use the 'position' command to set a position")?;
-                let (time, increment) = match board.stm() {
-                    Colour::Black => (btime, binc),
-                    Colour::White => (wtime, winc),
+                let time_and_inc: Option<(u32, u32)> = match board.stm() {
+                    Colour::White => wtime.zip(winc),
+                    Colour::Black => btime.zip(binc),
                 };
-                let time_manager = TimeManager::new_time(time, increment);
+                let time_manager = TimeManager::new(depth, None, time_and_inc);
                 let output = SearchStdOut::BestMove;
                 self.search.start_search(board, time_manager, output)?;
+                Ok(Abort::No)
+            },
+            ReceiveUci::Stop => {
+                self.search.stop();
+                Ok(Abort::No)
+            },
+            ReceiveUci::Perft { depth, fen } => {
+                let board = match fen {
+                    Some(fen) => Board::parse_fen(&fen)?,
+                    None => self.position.clone().unwrap_or(Board::startpos()),
+                };
+                Engine::run_perft(board, depth);
                 Ok(Abort::No)
             }
         }
     }
 
     pub fn shutdown(self) -> Result<()> {
-        self.search.stop()?;
+        self.search.quit()?;
         Ok(())
     }
 }

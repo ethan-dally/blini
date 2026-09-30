@@ -15,6 +15,7 @@ use crate::{board::board::Board, common::r#move::Move, search::time::TimeManager
 
 #[derive(Debug)]
 pub struct Search {
+    shared_data: Option<Arc<SharedData>>,
     worker_thread: JoinHandle<Result<(), SearchError>>,
     sender: Sender<WorkerCommand>,
 }
@@ -26,7 +27,16 @@ impl Search {
         Search {
             worker_thread,
             sender,
+            shared_data: None
         }
+    }
+
+    #[inline]
+    pub fn stop(&self) {
+        let Some(shared) = &self.shared_data else {
+            return;
+        };
+        shared.time_manager.stop();
     }
 
     fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<(), SearchError> {
@@ -47,7 +57,7 @@ impl Search {
     }
 
     pub fn start_search(
-        &self,
+        &mut self,
         board: Board,
         time_manager: TimeManager,
         output: SearchStdOut,
@@ -60,6 +70,7 @@ impl Search {
         self.sender
             .send(WorkerCommand::Search((shared_data.clone(), output)))
             .map_err(|_| SearchError::SendCommand)?;
+        self.shared_data = Some(shared_data.clone());
         Ok(shared_data)
     }
 
@@ -72,7 +83,7 @@ impl Search {
         Ok(())
     }
 
-    pub fn stop(self) -> Result<(), SearchError> {
+    pub fn quit(self) -> Result<(), SearchError> {
         self.sender
             .send(WorkerCommand::Stop)
             .map_err(|_| SearchError::Stop)?;
@@ -134,6 +145,13 @@ impl Score {
     }
 }
 
+impl std::ops::Neg for Score {
+    type Output = Score;
+    fn neg(self) -> Self::Output {
+        Score(-self.0)
+    }
+}
+
 #[inline]
 fn random_eval(_board: Board, rng: &mut ThreadRng) -> Score {
     Score(rng.random_range(-10_000..=10_000))
@@ -173,7 +191,9 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         for mv in moves.clone() {
             let mut new_board = shared.board.clone();
             new_board.do_move(mv);
+
             let Some(score) = negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared)
+                .map(|s|{-s})
             else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
@@ -229,16 +249,17 @@ fn negamax_recursion(
 
     let moves = board.get_moves();
     let mut best_score = Score::new();
-
     for mv in moves {
+
         if (*node_count).is_multiple_of(0x400)
             && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
         {
             return None;
         }
+
         let mut new_board = board.clone();
         new_board.do_move(mv);
-        let score = negamax_recursion(new_board, depth - 1, rng, node_count, shared)?;
+        let score = -negamax_recursion(new_board, depth - 1, rng, node_count, shared)?;
         best_score = max(best_score, score);
     }
     *node_count += 1;
