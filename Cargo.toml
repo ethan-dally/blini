@@ -1,5 +1,5 @@
 [package]
-name = "chess_engine"
+name = "blini"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,6 +9,14 @@ color-eyre = "0.6.5"
 enum-map = "3.1.0"
 rand = "0.10.2"
 thiserror = "2.0.21"
+
+[profile.release]
+opt-level = 3          # Maximum optimizations
+lto = "fat"            # Fat Link-Time Optimization across all crates
+codegen-units = 1      # Reduce number of codegen units to increase optimization efficiency
+panic = "abort"        # Remove unwinding logic and stack-unwinding code size
+debug = false          # Strip debugging symbols
+strip = true           # Automatically strip symbols from the binary
 
 [lints.clippy]
 all = { level = "deny", priority = -1 }

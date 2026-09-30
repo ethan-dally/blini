@@ -32,7 +32,7 @@ enum ReceiveUci {
     Bench,
     Perft {
         depth: u8,
-        fen: Option<String>,
+        fen: Option<Board>,
     },
 }
 
@@ -52,15 +52,21 @@ impl ReceiveUci {
         }
     }
 
+    fn parse_fen(uci: &mut SplitWhitespace<'_>) -> Option<Board> {
+        let fen = (0..6)
+            .map(|_| uci.next())
+            .collect::<Option<Vec<_>>>()?
+            .join(" ");
+        // TODO: Get this fen not silently failing
+        let board = Board::parse_fen(&fen).ok()?;
+        Some(board)
+    }
+
     fn parse_perft(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let (Some(depth), fen_opt, None) = (uci.next(), uci.next(), uci.next()) else {
-            return None;
-        };
+        let depth = uci.next()?;
         let depth = depth.parse::<u8>().ok()?;
-        Some(ReceiveUci::Perft {
-            depth,
-            fen: fen_opt.map(|s| s.to_string()),
-        })
+        let fen = ReceiveUci::parse_fen(&mut uci);
+        Some(ReceiveUci::Perft { depth, fen })
     }
 
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
@@ -122,10 +128,7 @@ impl ReceiveUci {
         let pos = uci.next()?.to_ascii_lowercase();
         let mut board: Board = match pos.as_str() {
             "startpos" => Board::startpos(),
-            "fen" => {
-                let fen = uci.next()?;
-                Board::parse_fen(fen).ok()?
-            }
+            "fen" => ReceiveUci::parse_fen(&mut uci)?,
             _ => {
                 return None;
             }
@@ -198,7 +201,7 @@ impl Engine {
         match uci {
             ReceiveUci::Quit => Ok(Abort::Yes),
             ReceiveUci::Uci => {
-                println!("id name ???");
+                println!("id name blini");
                 println!("id author Drex");
                 println!("uciok");
                 Ok(Abort::No)
@@ -245,8 +248,11 @@ impl Engine {
             }
             ReceiveUci::Perft { depth, fen } => {
                 let board = match fen {
-                    Some(fen) => Board::parse_fen(&fen)?,
-                    None => self.position.clone().unwrap_or(Board::startpos()),
+                    Some(fen) => fen,
+                    None => {
+                        println!("command failed: couldnt parse fen");
+                        return Ok(Abort::No);
+                    } //TODO make this maybe do the position?
                 };
                 Engine::run_perft(board, depth);
                 Ok(Abort::No)

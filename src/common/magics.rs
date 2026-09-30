@@ -170,6 +170,7 @@ const ORTHOGONAL_MAGICS: [u64; 64] = [
     12002096410175927254,
 ];
 
+#[inline]
 pub fn magic_table() -> &'static MagicTable {
     MAGIC_TABLE.get_or_init(|| {
         MagicTable::build(DIAGONAL_MAGICS, ORTHOGONAL_MAGICS).expect("failed to build magic tables")
