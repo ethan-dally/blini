@@ -42,41 +42,54 @@ impl MoveFlag {
     }
 }
 
+/*
+Bits ordering
+1 src - 6 bits
+2 dst - 6 bits
+3 moveflat - 4 bits
+*/
 #[derive(Debug, Clone, Copy)]
-pub struct Move {
-    src: Square,
-    dst: Square,
-    flag: MoveFlag,
-}
+pub struct Move(u16);
 
 impl Move {
     #[inline]
     pub fn new(src: Square, dst: Square, flag: MoveFlag) -> Move {
-        Move { src, dst, flag }
+        Move((flag as u16) << 12 | (dst as u16) << 6 | (src as u16))
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    //bitshift and mask ensures we collect only the 6 relevant bits
     pub fn flag(&self) -> MoveFlag {
-        self.flag
+        // SAFETY: by new() being the only constructor
+        unsafe { core::mem::transmute::<u8, MoveFlag>((self.0 >> 12) as u8) }
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    //the mask ensures we only collect the 6 relevant first bits
     pub fn src(&self) -> Square {
-        self.src
+        const SRC_MASK: u8 = 0b111111;
+        // SAFETY: by new() being the only constructor
+        unsafe { core::mem::transmute::<u8, Square>(self.0 as u8 & SRC_MASK) }
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    //the mask ensures we only collect the 6 relevant first bits
     pub fn dst(&self) -> Square {
-        self.dst
+        const DST_MASK: u8 = 0b111111;
+        // SAFETY: by new() being the only constructor
+        unsafe { core::mem::transmute::<u8, Square>(((self.0 >> 6) as u8) & DST_MASK) }
     }
 
     #[inline]
     pub fn uci(self) -> String {
         [
-            char::from(self.src.file()),
-            char::from(self.src.rank()),
-            char::from(self.dst.file()),
-            char::from(self.dst.rank()),
+            char::from(self.src().file()),
+            char::from(self.src().rank()),
+            char::from(self.dst().file()),
+            char::from(self.dst().rank()),
         ]
         .iter()
         .collect()
@@ -97,7 +110,7 @@ impl MoveList {
         self.0
             .iter()
             .copied()
-            .find(|mv| mv.dst == dst && mv.src == src)
+            .find(|mv| mv.dst() == dst && mv.src() == src)
     }
 
     #[inline]
@@ -111,8 +124,8 @@ impl MoveList {
         let mut dst_piece_array = [0u8; 64];
 
         for mv in &self.0 {
-            src_piece_array[mv.src as usize] += 1;
-            dst_piece_array[mv.dst as usize] += 1;
+            src_piece_array[mv.src() as usize] += 1;
+            dst_piece_array[mv.dst() as usize] += 1;
         }
 
         println!("src: \n");
