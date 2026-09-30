@@ -1,5 +1,6 @@
 use std::{
-    io::{self, Write}, str::SplitWhitespace,
+    io::{self, Write},
+    str::SplitWhitespace,
 };
 
 use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
@@ -18,8 +19,8 @@ enum ReceiveUci {
     Go {
         wtime: Option<u32>,
         btime: Option<u32>,
-        winc:  Option<u32>,
-        binc:  Option<u32>,
+        winc: Option<u32>,
+        binc: Option<u32>,
         depth: Option<u8>,
     },
     Stop,
@@ -29,11 +30,13 @@ enum ReceiveUci {
     UciNewGame,
     IsReady,
     Bench,
-    Perft{depth: u8, fen: Option<String>},
+    Perft {
+        depth: u8,
+        fen: Option<String>,
+    },
 }
 
 impl ReceiveUci {
-
     fn parse(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         match uci.next()?.to_ascii_lowercase().as_str() {
             "go" => ReceiveUci::parse_go(uci),
@@ -54,18 +57,20 @@ impl ReceiveUci {
             return None;
         };
         let depth = depth.parse::<u8>().ok()?;
-        return Some(ReceiveUci::Perft{depth, fen: fen_opt.map(|s|{s.to_string()})});
+        Some(ReceiveUci::Perft {
+            depth,
+            fen: fen_opt.map(|s| s.to_string()),
+        })
     }
 
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         //reasonable defaults
         let mut wtime: Option<u32> = Some(1000);
         let mut btime: Option<u32> = Some(1000);
-        let mut winc:  Option<u32> = Some(0);
-        let mut binc:  Option<u32> = Some(0);
-        let mut depth: Option<u8>  = None;
+        let mut winc: Option<u32> = Some(0);
+        let mut binc: Option<u32> = Some(0);
+        let mut depth: Option<u8> = None;
         while let (Some(arg), raw_val) = (uci.next(), uci.next()) {
-
             // TODO: fix that it works weird if you put "infinite" as like the 3rd argument
 
             if arg == "infinite" {
@@ -109,7 +114,7 @@ impl ReceiveUci {
             btime,
             winc,
             binc,
-            depth
+            depth,
         })
     }
 
@@ -233,11 +238,11 @@ impl Engine {
                 let output = SearchStdOut::BestMove;
                 self.search.start_search(board, time_manager, output)?;
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::Stop => {
                 self.search.stop();
                 Ok(Abort::No)
-            },
+            }
             ReceiveUci::Perft { depth, fen } => {
                 let board = match fen {
                     Some(fen) => Board::parse_fen(&fen)?,

@@ -27,7 +27,7 @@ impl Search {
         Search {
             worker_thread,
             sender,
-            shared_data: None
+            shared_data: None,
         }
     }
 
@@ -192,8 +192,8 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             let mut new_board = shared.board.clone();
             new_board.do_move(mv);
 
-            let Some(score) = negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared)
-                .map(|s|{-s})
+            let Some(score) =
+                negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared).map(|s| -s)
             else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
@@ -250,7 +250,6 @@ fn negamax_recursion(
     let moves = board.get_moves();
     let mut best_score = Score::new();
     for mv in moves {
-
         if (*node_count).is_multiple_of(0x400)
             && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
         {

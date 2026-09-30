@@ -54,7 +54,6 @@ impl Engine {
 }
 
 impl Board {
-
     #[inline]
     fn perft(self, depth: u8) -> u64 {
         let move_list = self.get_moves();

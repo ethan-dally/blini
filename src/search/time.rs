@@ -1,4 +1,7 @@
-use std::{sync::atomic::{AtomicBool, Ordering}, time::Instant};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
 
 #[derive(Debug)]
 pub struct TimeManager {
@@ -11,24 +14,27 @@ pub struct TimeManager {
 }
 
 impl TimeManager {
-
     #[inline]
-    pub fn new(depth: Option<u8>, nodes: Option<u64>, time_and_inc: Option<(u32, u32)>) -> TimeManager {
+    pub fn new(
+        depth: Option<u8>,
+        nodes: Option<u64>,
+        time_and_inc: Option<(u32, u32)>,
+    ) -> TimeManager {
         let mut limit_soft_time = None;
         let mut limit_hard_time = None;
         if let Some((time, inc)) = time_and_inc {
             limit_soft_time = Some(TimeManager::soft_time(time, inc));
             limit_hard_time = Some(TimeManager::hard_time(time, inc));
         }
-        let tm = TimeManager {
+
+        TimeManager {
             turn_start: Instant::now(),
             limit_max_nodes: nodes,
             limit_max_depth: depth,
-            limit_soft_time, 
-            limit_hard_time, 
-            stop: AtomicBool::new(false)
-        };
-        tm
+            limit_soft_time,
+            limit_hard_time,
+            stop: AtomicBool::new(false),
+        }
     }
 
     #[inline]
