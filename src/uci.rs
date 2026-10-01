@@ -134,6 +134,15 @@ impl ReceiveUci {
             }
         };
 
+        let Some(mv_command) = uci.next() else {
+            return Some(ReceiveUci::Position(board));
+        };
+
+        if mv_command != "moves" {
+            println!("invalid command, try 'moves'");
+            return None;
+        }
+
         for mv in uci {
             let (raw_src, raw_dst) = mv.split_at_checked(2)?;
             let src = Square::parse(raw_src)?;
@@ -141,6 +150,7 @@ impl ReceiveUci {
             let verified_move = board.get_moves().find(src, dst)?;
             board.do_move(verified_move);
         }
+
         Some(ReceiveUci::Position(board))
     }
 }
