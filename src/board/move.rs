@@ -88,4 +88,24 @@ impl Board {
         }
         self.stm = !self.stm;
     }
+
+    #[inline]
+    pub fn apply_uci_moves(&mut self, uci_mv: Vec<&str>) -> Result<(), String> {
+        for mv in uci_mv {
+            let Some((raw_src, raw_dst)) = mv.split_at_checked(2) else {
+                return Err(format!("couldnt split move '{mv}'"));
+            };
+            let Some(src) = Square::parse(raw_src) else {
+                return Err(format!("couldnt parse src '{raw_src}' in '{mv}'"));
+            };
+            let Some(dst) = Square::parse(raw_dst) else {
+                return Err(format!("couldnt parse src '{raw_dst}' in '{mv}'"));
+            };
+            let Some(verified_move) = self.get_moves().find(src, dst) else {
+                return Err(format!("move '{mv}' is not a legal move"));
+            };
+            self.do_move(verified_move);
+        }
+        Ok(())
+    }
 }

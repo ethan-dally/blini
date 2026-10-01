@@ -53,6 +53,7 @@ impl Engine {
         if total_millis == 0 {
             return Err(eyre!("bench speed is unmeasureably fast"));
         }
+
         let nps = (total_nodes * 1000u64).div_ceil(total_millis);
         println!("nodes {total_nodes} time {total_millis} nps {nps}");
         Ok(())

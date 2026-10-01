@@ -1,20 +1,19 @@
 use std::{
     io::{self, Write},
     str::SplitWhitespace,
+    prelude::v1::Ok
 };
 
-use color_eyre::eyre::{Ok, OptionExt, Result, eyre};
+use color_eyre::eyre::{Result, eyre};
 
 use crate::{
-    board::board::Board,
-    common::{colour::Colour, square::Square},
-    search::{
+    board::board::Board, common::colour::Colour, search::{
         search::{Search, SearchStdOut},
         time::TimeManager,
-    },
+    }
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum ReceiveUci {
     Go {
         wtime: Option<u32>,
@@ -32,49 +31,86 @@ enum ReceiveUci {
     Bench,
     Perft {
         depth: u8,
-        fen: Option<Board>,
+        board: Option<Board>,
     },
 }
 
 impl ReceiveUci {
     fn parse(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        match uci.next()?.to_ascii_lowercase().as_str() {
-            "go" => ReceiveUci::parse_go(uci),
-            "stop" => Some(ReceiveUci::Stop),
-            "position" => ReceiveUci::parse_pos(uci),
-            "quit" => Some(ReceiveUci::Quit),
-            "uci" => Some(ReceiveUci::Uci),
+        let Some(uci_raw) = uci.next() else {
+            println!("COMMAND ERROR: type to give a command");
+            return None;
+        };
+        match uci_raw.to_ascii_lowercase().as_str() {
+            "go" =>         {ReceiveUci::parse_go(uci)},
+            "position" =>   {ReceiveUci::parse_pos(uci)},
+            "perft" =>      {ReceiveUci::parse_perft(uci)},
+            "stop" =>       Some(ReceiveUci::Stop),
+            "quit" =>       Some(ReceiveUci::Quit),
+            "uci" =>        Some(ReceiveUci::Uci),
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
-            "isready" => Some(ReceiveUci::IsReady),
-            "bench" => Some(ReceiveUci::Bench),
-            "perft" => ReceiveUci::parse_perft(uci),
-            _ => None,
+            "isready" =>    Some(ReceiveUci::IsReady),
+            "bench" =>      Some(ReceiveUci::Bench),
+            _ => {
+                println!("COMMAND ERROR: unknown command '{uci_raw}'");
+                None
+            },
         }
     }
 
     fn parse_fen(uci: &mut SplitWhitespace<'_>) -> Option<Board> {
-        let fen = (0..6)
-            .map(|_| uci.next())
-            .collect::<Option<Vec<_>>>()?
-            .join(" ");
-        // TODO: Get this fen not silently failing
-        let board = Board::parse_fen(&fen).ok()?;
+
+        let fen = (0..6).map(|_|{
+            uci.next().unwrap_or_default()
+        }).collect::<Vec<_>>().join(" ");
+
+        let board = match Board::parse_fen(&fen) {
+            Ok(board) => {board},
+            Err(report) => {
+                println!("COMMAND ERROR: fen {report}");
+                return None;
+            }
+        };
         Some(board)
     }
 
     fn parse_perft(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let depth = uci.next()?;
-        let depth = depth.parse::<u8>().ok()?;
-        let fen = ReceiveUci::parse_fen(&mut uci);
-        Some(ReceiveUci::Perft { depth, fen })
+        let Some(depth) = uci.next() else {
+            println!("COMMAND ERROR: perft requires a depth and position");
+            return None;
+        };
+        let depth = match depth.parse::<u8>() {
+            Err(err) => {
+                println!("COMMAND ERROR: invalid depth '{err}'");
+                return None;
+            },
+            Ok(u8) => u8
+        };
+        let pos = match uci.next() {
+            Some(a) => a,
+            None => {
+                println!("COMMAND ERROR: command needs a 'fen ...' , 'startpos' or 'self'");
+                return None;
+            }
+        };
+        let board: Option<Board> = match pos {
+            "startpos" => Some(Board::startpos()),
+            "fen" => Some(ReceiveUci::parse_fen(&mut uci)?),
+            "self" => None,
+            _ => {
+                println!("COMMAND ERROR: try 'fen ...' , 'startpos' or 'self'");
+                return None;
+            }
+        };
+        Some(ReceiveUci::Perft { depth, board })
     }
 
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         //reasonable defaults
-        let mut wtime: Option<u32> = Some(1000);
-        let mut btime: Option<u32> = Some(1000);
-        let mut winc: Option<u32> = Some(0);
-        let mut binc: Option<u32> = Some(0);
+        let mut wtime: Option<u32> = None;
+        let mut btime: Option<u32> = None;
+        let mut winc: Option<u32> = None;
+        let mut binc: Option<u32> = None;
         let mut depth: Option<u8> = None;
         while let (Some(arg), raw_val) = (uci.next(), uci.next()) {
             // TODO: fix that it works weird if you put "infinite" as like the 3rd argument
@@ -89,27 +125,39 @@ impl ReceiveUci {
             }
 
             let Some(raw_val) = raw_val else {
-                break;
+                println!("COMMAND ERROR: second numeric argument expected after '{arg}'");
+                return None;
             };
 
-            let val = raw_val.parse::<u32>().ok()?;
+            let Ok(val) = raw_val.parse::<u32>() else {
+                println!("COMMAND ERROR: '{raw_val}' not a valid number");
+                return None;
+            };
+
+            // .or() here to make sure the pair is filled for if a partial command is given
+            // at least there exists a reasonable default rather than none
             match arg {
                 "wtime" => {
                     wtime = Some(val);
+                    winc = winc.or(Some(0u32));
                 }
                 "btime" => {
                     btime = Some(val);
+                    binc = binc.or(Some(0u32));
                 }
                 "winc" => {
                     winc = Some(val);
+                    wtime = wtime.or(Some(0u32));
                 }
                 "binc" => {
                     binc = Some(val);
+                    btime = btime.or(Some(0u32));
                 }
                 "depth" => {
                     depth = Some(u8::try_from(val).ok()?);
                 }
                 _ => {
+                    println!("COMMAND ERROR: unknown argument '{arg}'");
                     return None;
                 }
             }
@@ -125,11 +173,16 @@ impl ReceiveUci {
     }
 
     fn parse_pos(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let pos = uci.next()?.to_ascii_lowercase();
-        let mut board: Board = match pos.as_str() {
+        let Some(pos) = uci.next() else {
+            println!("COMMAND ERROR: after pos try 'startpos' or 'fen ...'");
+            return None;
+        };
+
+        let mut board: Board = match pos.to_ascii_lowercase().as_str() {
             "startpos" => Board::startpos(),
             "fen" => ReceiveUci::parse_fen(&mut uci)?,
             _ => {
+                println!("COMMAND ERROR: unknown argument '{pos}'");
                 return None;
             }
         };
@@ -139,16 +192,14 @@ impl ReceiveUci {
         };
 
         if mv_command != "moves" {
-            println!("invalid command, try 'moves'");
+            println!("COMMAND ERROR: leave blank or try 'moves <mv1> <mv2> ...'");
             return None;
         }
 
-        for mv in uci {
-            let (raw_src, raw_dst) = mv.split_at_checked(2)?;
-            let src = Square::parse(raw_src)?;
-            let dst = Square::parse(raw_dst)?;
-            let verified_move = board.get_moves().find(src, dst)?;
-            board.do_move(verified_move);
+        let uci_mv = uci.collect();
+        if let Err(message) = board.apply_uci_moves(uci_mv) {
+            println!("COMMAND ERROR: {message}");
+            return None;
         }
 
         Some(ReceiveUci::Position(board))
@@ -163,14 +214,14 @@ pub enum Abort {
 
 #[derive(Debug)]
 pub struct Engine {
-    pub position: Option<Board>,
+    pub position: Board,
     pub search: Search,
 }
 
 impl Engine {
     pub fn default() -> Engine {
         Engine {
-            position: None,
+            position: Board::startpos(),
             search: Search::new(),
         }
     }
@@ -221,7 +272,7 @@ impl Engine {
                 Ok(Abort::No)
             }
             ReceiveUci::Position(board) => {
-                self.position = Some(board);
+                self.position = board;
                 Ok(Abort::No)
             }
             ReceiveUci::UciNewGame => {
@@ -241,8 +292,7 @@ impl Engine {
             } => {
                 let board = self
                     .position
-                    .clone()
-                    .ok_or_eyre("use the 'position' command to set a position")?;
+                    .clone();
                 let time_and_inc: Option<(u32, u32)> = match board.stm() {
                     Colour::White => wtime.zip(winc),
                     Colour::Black => btime.zip(binc),
@@ -256,14 +306,8 @@ impl Engine {
                 self.search.stop();
                 Ok(Abort::No)
             }
-            ReceiveUci::Perft { depth, fen } => {
-                let board = match fen {
-                    Some(fen) => fen,
-                    None => {
-                        println!("command failed: couldnt parse fen");
-                        return Ok(Abort::No);
-                    } //TODO make this maybe do the position?
-                };
+            ReceiveUci::Perft { depth, board } => {
+                let board = board.unwrap_or(self.position.clone());
                 Engine::run_perft(board, depth);
                 Ok(Abort::No)
             }
@@ -273,5 +317,65 @@ impl Engine {
     pub fn shutdown(self) -> Result<()> {
         self.search.quit()?;
         Ok(())
+    }
+}
+
+mod tests {
+    #[allow(unused_imports)]
+    use crate::{board::board::Board, uci::ReceiveUci};
+
+    #[test]
+    fn test_receive_uci() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+        // Basic commands
+        assert_eq!( ReceiveUci::parse("uci".split_whitespace()), Some(ReceiveUci::Uci));
+        assert_eq!( ReceiveUci::parse("isready".split_whitespace()), Some(ReceiveUci::IsReady));
+        assert_eq!( ReceiveUci::parse("ucinewgame".split_whitespace()), Some(ReceiveUci::UciNewGame));
+        assert_eq!( ReceiveUci::parse("stop".split_whitespace()), Some(ReceiveUci::Stop));
+        assert_eq!( ReceiveUci::parse("quit".split_whitespace()), Some(ReceiveUci::Quit));
+        assert_eq!( ReceiveUci::parse("bench".split_whitespace()), Some(ReceiveUci::Bench));
+
+        // Position
+        let mut board = Board::startpos();
+        board.apply_uci_moves(vec!["e2e4", "e7e5"]).unwrap();
+        assert_eq!( ReceiveUci::parse("position startpos".split_whitespace()), Some(ReceiveUci::Position(Board::startpos())));
+        assert_eq!( ReceiveUci::parse( "position startpos moves e2e4 e7e5" .split_whitespace()), Some(ReceiveUci::Position(board)));
+        assert_eq!( ReceiveUci::parse(format!("position fen {fen}").split_whitespace()), Some(ReceiveUci::Position(Board::startpos())));
+
+        // Go
+        assert_eq!( ReceiveUci::parse("go".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: None, winc: None, binc: None, depth: None, }));
+        assert_eq!( ReceiveUci::parse("go wtime 1000".split_whitespace()), Some(ReceiveUci::Go { wtime: Some(1000), btime: None, winc: Some(0), binc: None, depth: None, }));
+        assert_eq!( ReceiveUci::parse("go btime 2000".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: Some(2000), winc: None, binc: Some(0), depth: None, }));
+        assert_eq!( ReceiveUci::parse("go winc 100 binc 200".split_whitespace()), Some(ReceiveUci::Go { wtime: Some(0), btime: Some(0), winc: Some(100), binc: Some(200), depth: None, }));
+        assert_eq!( ReceiveUci::parse("go depth 12".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: None, winc: None, binc: None, depth: Some(12), }));
+        assert_eq!( ReceiveUci::parse( "go wtime 10000 btime 8000 winc 100 binc 200 depth 10" .split_whitespace()), Some(ReceiveUci::Go { wtime: Some(10000), btime: Some(8000), winc: Some(100), binc: Some(200), depth: Some(10), }));
+
+        // Perft
+        assert_eq!( ReceiveUci::parse("perft 5 self".split_whitespace()), Some(ReceiveUci::Perft { depth: 5, board: None, }));
+        assert_eq!( ReceiveUci::parse("perft 1 self".split_whitespace()), Some(ReceiveUci::Perft { depth: 1, board: None, }));
+
+        // Invalid / unsupported commands
+        assert_eq!( ReceiveUci::parse("".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("uc".split_whitespace()), None);
+
+        // Invalid position commands
+        assert_eq!( ReceiveUci::parse("position".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("position foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("position startpos foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("position fen".split_whitespace()), None);
+
+        // Invalid go commands
+        assert_eq!( ReceiveUci::parse("go wtime".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("go wtime foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("go depth foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("go depth 256".split_whitespace()), None);
+
+        // Invalid perft commands
+        assert_eq!( ReceiveUci::parse("perft".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("perft foo".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("perft 0".split_whitespace()), None);
+        assert_eq!( ReceiveUci::parse("perft 256".split_whitespace()), None);
     }
 }

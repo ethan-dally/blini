@@ -2,7 +2,7 @@ use enum_map::EnumMap;
 
 use crate::common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Board {
     pub(super) pieces: EnumMap<Piece, Bitboard>,
     pub(super) colours: EnumMap<Colour, Bitboard>,

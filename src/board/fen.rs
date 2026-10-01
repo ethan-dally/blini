@@ -35,7 +35,7 @@ impl Board {
             .ok_or_else(|| eyre!("missing fullmove counter"))?;
 
         if parts.next().is_some() {
-            return Err(eyre!("FEN has too many fields"));
+            return Err(eyre!("has too many fields"));
         }
 
         /*
@@ -44,9 +44,9 @@ impl Board {
         let mut white_king = 0;
         let mut black_king = 0;
         for (rank, row) in pieces.split('/').enumerate() {
-            let rank_index = u8::try_from(7 - rank).map_err(|_| eyre!("invalid FEN rank count"))?;
+            let rank_index = u8::try_from(7 - rank).map_err(|_| eyre!("invalid rank count"))?;
             let Some(rank) = Rank::try_index(rank_index) else {
-                return Err(eyre!("FEN has invalid rank"));
+                return Err(eyre!("has invalid rank"));
             };
 
             let mut file_count: u8 = 0;
@@ -73,7 +73,7 @@ impl Board {
 
         if white_king != 1 || black_king != 1 {
             return Err(eyre!(
-                "there should be one king on each side w: {} b: {}",
+                "should have one king on each side w: {} b: {}",
                 white_king,
                 black_king,
             ));
@@ -83,7 +83,7 @@ impl Board {
         stm
         */
         if stm.len() != 1 {
-            return Err(eyre!("fen stm string leng is too long"));
+            return Err(eyre!("stm string len is too long"));
         }
 
         let stm: char = stm.chars().next().ok_or_eyre("unreachable")?;
@@ -96,7 +96,7 @@ impl Board {
         castling
         */
         if castling.len() > 4 {
-            return Err(eyre!("FEN castling string should be of size 4"));
+            return Err(eyre!("castling string should be of size 4"));
         }
 
         if castling != "-" {
@@ -106,7 +106,7 @@ impl Board {
                     'Q' => board.set_castling(Colour::White, false, true),
                     'k' => board.set_castling(Colour::Black, true, true),
                     'q' => board.set_castling(Colour::Black, false, true),
-                    _ => return Err(eyre!("fen has incorrect char: {} in castling", c)),
+                    _ => return Err(eyre!("has incorrect char: {} in castling", c)),
                 }
             }
         }
