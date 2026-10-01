@@ -199,7 +199,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
                 if output == SearchStdOut::BestMove {
-                    println!("{}", prev_best_move.uci());
+                    println!("bestmove {}", prev_best_move.uci());
                 }
                 return Ok(());
             };
