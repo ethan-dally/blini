@@ -1,16 +1,18 @@
 use std::{
     io::{self, Write},
+    prelude::v1::Ok,
     str::SplitWhitespace,
-    prelude::v1::Ok
 };
 
 use color_eyre::eyre::{Result, eyre};
 
 use crate::{
-    board::board::Board, common::colour::Colour, search::{
+    board::board::Board,
+    common::colour::Colour,
+    search::{
         search::{Search, SearchStdOut},
         time::TimeManager,
-    }
+    },
 };
 
 #[derive(Debug, PartialEq)]
@@ -42,30 +44,30 @@ impl ReceiveUci {
             return None;
         };
         match uci_raw.to_ascii_lowercase().as_str() {
-            "go" =>         {ReceiveUci::parse_go(uci)},
-            "position" =>   {ReceiveUci::parse_pos(uci)},
-            "perft" =>      {ReceiveUci::parse_perft(uci)},
-            "stop" =>       Some(ReceiveUci::Stop),
-            "quit" =>       Some(ReceiveUci::Quit),
-            "uci" =>        Some(ReceiveUci::Uci),
+            "go" => ReceiveUci::parse_go(uci),
+            "position" => ReceiveUci::parse_pos(uci),
+            "perft" => ReceiveUci::parse_perft(uci),
+            "stop" => Some(ReceiveUci::Stop),
+            "quit" => Some(ReceiveUci::Quit),
+            "uci" => Some(ReceiveUci::Uci),
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
-            "isready" =>    Some(ReceiveUci::IsReady),
-            "bench" =>      Some(ReceiveUci::Bench),
+            "isready" => Some(ReceiveUci::IsReady),
+            "bench" => Some(ReceiveUci::Bench),
             _ => {
                 println!("COMMAND ERROR: unknown command '{uci_raw}'");
                 None
-            },
+            }
         }
     }
 
     fn parse_fen(uci: &mut SplitWhitespace<'_>) -> Option<Board> {
-
-        let fen = (0..6).map(|_|{
-            uci.next().unwrap_or_default()
-        }).collect::<Vec<_>>().join(" ");
+        let fen = (0..6)
+            .map(|_| uci.next().unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join(" ");
 
         let board = match Board::parse_fen(&fen) {
-            Ok(board) => {board},
+            Ok(board) => board,
             Err(report) => {
                 println!("COMMAND ERROR: fen {report}");
                 return None;
@@ -83,8 +85,8 @@ impl ReceiveUci {
             Err(err) => {
                 println!("COMMAND ERROR: invalid depth '{err}'");
                 return None;
-            },
-            Ok(u8) => u8
+            }
+            Ok(u8) => u8,
         };
         let pos = match uci.next() {
             Some(a) => a,
@@ -290,9 +292,7 @@ impl Engine {
                 binc,
                 depth,
             } => {
-                let board = self
-                    .position
-                    .clone();
+                let board = self.position.clone();
                 let time_and_inc: Option<(u32, u32)> = match board.stm() {
                     Colour::White => wtime.zip(winc),
                     Colour::Black => btime.zip(binc),
@@ -329,53 +329,151 @@ mod tests {
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
         // Basic commands
-        assert_eq!( ReceiveUci::parse("uci".split_whitespace()), Some(ReceiveUci::Uci));
-        assert_eq!( ReceiveUci::parse("isready".split_whitespace()), Some(ReceiveUci::IsReady));
-        assert_eq!( ReceiveUci::parse("ucinewgame".split_whitespace()), Some(ReceiveUci::UciNewGame));
-        assert_eq!( ReceiveUci::parse("stop".split_whitespace()), Some(ReceiveUci::Stop));
-        assert_eq!( ReceiveUci::parse("quit".split_whitespace()), Some(ReceiveUci::Quit));
-        assert_eq!( ReceiveUci::parse("bench".split_whitespace()), Some(ReceiveUci::Bench));
+        assert_eq!(
+            ReceiveUci::parse("uci".split_whitespace()),
+            Some(ReceiveUci::Uci)
+        );
+        assert_eq!(
+            ReceiveUci::parse("isready".split_whitespace()),
+            Some(ReceiveUci::IsReady)
+        );
+        assert_eq!(
+            ReceiveUci::parse("ucinewgame".split_whitespace()),
+            Some(ReceiveUci::UciNewGame)
+        );
+        assert_eq!(
+            ReceiveUci::parse("stop".split_whitespace()),
+            Some(ReceiveUci::Stop)
+        );
+        assert_eq!(
+            ReceiveUci::parse("quit".split_whitespace()),
+            Some(ReceiveUci::Quit)
+        );
+        assert_eq!(
+            ReceiveUci::parse("bench".split_whitespace()),
+            Some(ReceiveUci::Bench)
+        );
 
         // Position
         let mut board = Board::startpos();
         board.apply_uci_moves(vec!["e2e4", "e7e5"]).unwrap();
-        assert_eq!( ReceiveUci::parse("position startpos".split_whitespace()), Some(ReceiveUci::Position(Board::startpos())));
-        assert_eq!( ReceiveUci::parse( "position startpos moves e2e4 e7e5" .split_whitespace()), Some(ReceiveUci::Position(board)));
-        assert_eq!( ReceiveUci::parse(format!("position fen {fen}").split_whitespace()), Some(ReceiveUci::Position(Board::startpos())));
+        assert_eq!(
+            ReceiveUci::parse("position startpos".split_whitespace()),
+            Some(ReceiveUci::Position(Board::startpos()))
+        );
+        assert_eq!(
+            ReceiveUci::parse("position startpos moves e2e4 e7e5".split_whitespace()),
+            Some(ReceiveUci::Position(board))
+        );
+        assert_eq!(
+            ReceiveUci::parse(format!("position fen {fen}").split_whitespace()),
+            Some(ReceiveUci::Position(Board::startpos()))
+        );
 
         // Go
-        assert_eq!( ReceiveUci::parse("go".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: None, winc: None, binc: None, depth: None, }));
-        assert_eq!( ReceiveUci::parse("go wtime 1000".split_whitespace()), Some(ReceiveUci::Go { wtime: Some(1000), btime: None, winc: Some(0), binc: None, depth: None, }));
-        assert_eq!( ReceiveUci::parse("go btime 2000".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: Some(2000), winc: None, binc: Some(0), depth: None, }));
-        assert_eq!( ReceiveUci::parse("go winc 100 binc 200".split_whitespace()), Some(ReceiveUci::Go { wtime: Some(0), btime: Some(0), winc: Some(100), binc: Some(200), depth: None, }));
-        assert_eq!( ReceiveUci::parse("go depth 12".split_whitespace()), Some(ReceiveUci::Go { wtime: None, btime: None, winc: None, binc: None, depth: Some(12), }));
-        assert_eq!( ReceiveUci::parse( "go wtime 10000 btime 8000 winc 100 binc 200 depth 10" .split_whitespace()), Some(ReceiveUci::Go { wtime: Some(10000), btime: Some(8000), winc: Some(100), binc: Some(200), depth: Some(10), }));
+        assert_eq!(
+            ReceiveUci::parse("go".split_whitespace()),
+            Some(ReceiveUci::Go {
+                wtime: None,
+                btime: None,
+                winc: None,
+                binc: None,
+                depth: None,
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse("go wtime 1000".split_whitespace()),
+            Some(ReceiveUci::Go {
+                wtime: Some(1000),
+                btime: None,
+                winc: Some(0),
+                binc: None,
+                depth: None,
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse("go btime 2000".split_whitespace()),
+            Some(ReceiveUci::Go {
+                wtime: None,
+                btime: Some(2000),
+                winc: None,
+                binc: Some(0),
+                depth: None,
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse("go winc 100 binc 200".split_whitespace()),
+            Some(ReceiveUci::Go {
+                wtime: Some(0),
+                btime: Some(0),
+                winc: Some(100),
+                binc: Some(200),
+                depth: None,
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse("go depth 12".split_whitespace()),
+            Some(ReceiveUci::Go {
+                wtime: None,
+                btime: None,
+                winc: None,
+                binc: None,
+                depth: Some(12),
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse(
+                "go wtime 10000 btime 8000 winc 100 binc 200 depth 10".split_whitespace()
+            ),
+            Some(ReceiveUci::Go {
+                wtime: Some(10000),
+                btime: Some(8000),
+                winc: Some(100),
+                binc: Some(200),
+                depth: Some(10),
+            })
+        );
 
         // Perft
-        assert_eq!( ReceiveUci::parse("perft 5 self".split_whitespace()), Some(ReceiveUci::Perft { depth: 5, board: None, }));
-        assert_eq!( ReceiveUci::parse("perft 1 self".split_whitespace()), Some(ReceiveUci::Perft { depth: 1, board: None, }));
+        assert_eq!(
+            ReceiveUci::parse("perft 5 self".split_whitespace()),
+            Some(ReceiveUci::Perft {
+                depth: 5,
+                board: None,
+            })
+        );
+        assert_eq!(
+            ReceiveUci::parse("perft 1 self".split_whitespace()),
+            Some(ReceiveUci::Perft {
+                depth: 1,
+                board: None,
+            })
+        );
 
         // Invalid / unsupported commands
-        assert_eq!( ReceiveUci::parse("".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("uc".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("foo".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("uc".split_whitespace()), None);
 
         // Invalid position commands
-        assert_eq!( ReceiveUci::parse("position".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("position foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("position startpos foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("position fen".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("position".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("position foo".split_whitespace()), None);
+        assert_eq!(
+            ReceiveUci::parse("position startpos foo".split_whitespace()),
+            None
+        );
+        assert_eq!(ReceiveUci::parse("position fen".split_whitespace()), None);
 
         // Invalid go commands
-        assert_eq!( ReceiveUci::parse("go wtime".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("go wtime foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("go depth foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("go depth 256".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("go wtime".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("go wtime foo".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("go depth foo".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("go depth 256".split_whitespace()), None);
 
         // Invalid perft commands
-        assert_eq!( ReceiveUci::parse("perft".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("perft foo".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("perft 0".split_whitespace()), None);
-        assert_eq!( ReceiveUci::parse("perft 256".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("perft".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("perft foo".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("perft 0".split_whitespace()), None);
+        assert_eq!(ReceiveUci::parse("perft 256".split_whitespace()), None);
     }
 }
