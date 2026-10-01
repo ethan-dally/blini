@@ -54,8 +54,7 @@ impl Engine {
         // +1 to avoid /0 error, too small to be noticable
         let total_nanos = total_time.as_nanos() + 1;
         let nps = total_nodes * 1_000_000_000u128 / total_nanos;
-        let total_millis = total_nanos / 1_000_000;
-        println!("nodes {total_nodes} time {total_millis} nps {nps}");
+        println!("nodes {total_nodes} nps {nps}");
         Ok(())
     }
 }
