@@ -1,4 +1,4 @@
-EXE = WakWak
+EXE = blini
 
 ifeq ($(OS),Windows_NT)
 NAME := $(EXE).exe
