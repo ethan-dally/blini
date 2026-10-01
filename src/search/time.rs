@@ -43,6 +43,24 @@ impl TimeManager {
     }
 
     #[inline]
+    #[allow(clippy::integer_division)]
+    #[allow(clippy::cast_possible_truncation)]
+    // NPS will *probably* never going that fast
+    // we want the floor divide here for a whole num
+    pub fn calc_nps(&self, nodes: u64) -> u32 {
+        // + 1 to ensure its never 0
+        let nanos = self.turn_start.elapsed().as_nanos() + 1;
+        (u128::from(nodes) * 1_000_000_000 / nanos) as u32
+    }
+
+    #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    // millis in a u32 holds 1.1k hours
+    pub fn time(&self) -> u32 {
+        self.turn_start.elapsed().as_millis() as u32
+    }
+
+    #[inline]
     #[allow(clippy::cast_possible_truncation)]
     // A u32 in milliseconds can hold 1.1k hours.
     pub fn soft_limit(&self) -> bool {

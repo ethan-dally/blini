@@ -119,6 +119,7 @@ enum WorkerCommand {
 
 #[derive(Debug, PartialEq)]
 pub enum SearchStdOut {
+    // TODO: Make an ALL
     BestMove,
     None,
 }
@@ -174,13 +175,13 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         shared.depth.store(0, Ordering::Relaxed);
         shared.nodes.store(1, Ordering::Relaxed);
         if output == SearchStdOut::BestMove {
-            println!("{}", first_move.uci());
+            println!("bestmove {}", first_move.uci());
         }
         return Ok(());
     }
 
     //iterative deepening
-    let mut ply = 0;
+    let mut ply = 1;
     let mut node_count: u64 = 0;
     let mut prev_best_move: Move = first_move;
 
@@ -193,7 +194,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             new_board.do_move(mv);
 
             let Some(score) =
-                negamax_recursion(new_board, ply, &mut rng, &mut node_count, &shared).map(|s| -s)
+                negamax_recursion(new_board, ply - 1, &mut rng, &mut node_count, &shared).map(|s| -s)
             else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
@@ -213,10 +214,21 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         shared.depth.store(ply, Ordering::Relaxed);
         shared.nodes.store(node_count, Ordering::Relaxed);
 
+        //info output
+        if output == SearchStdOut::BestMove {
+            let nodes = shared.nodes.load(Ordering::Relaxed);
+            let nps = shared.time_manager.calc_nps(nodes);
+            let time = shared.time_manager.time();
+            println!(
+                "info depth {ply} seldepth {ply} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
+                best_move.uci()
+            );
+        }
+
         // soft limit
         if shared.time_manager.soft_limit() {
             if output == SearchStdOut::BestMove {
-                println!("{}", best_move.uci());
+                println!("bestmove {}", best_move.uci());
             }
             return Ok(());
         }
@@ -224,7 +236,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         // depth limit
         if shared.time_manager.depth_limit(ply) {
             if output == SearchStdOut::BestMove {
-                println!("{}", best_move.uci());
+                println!("bestmove {}", best_move.uci());
             }
             return Ok(());
         }

@@ -40,7 +40,7 @@ enum ReceiveUci {
 impl ReceiveUci {
     fn parse(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         let Some(uci_raw) = uci.next() else {
-            println!("COMMAND ERROR: type to give a command");
+            println!("info type to give a command");
             return None;
         };
         match uci_raw.to_ascii_lowercase().as_str() {
@@ -54,7 +54,7 @@ impl ReceiveUci {
             "isready" => Some(ReceiveUci::IsReady),
             "bench" => Some(ReceiveUci::Bench),
             _ => {
-                println!("COMMAND ERROR: unknown command '{uci_raw}'");
+                println!("info unknown command '{uci_raw}'");
                 None
             }
         }
@@ -69,7 +69,7 @@ impl ReceiveUci {
         let board = match Board::parse_fen(&fen) {
             Ok(board) => board,
             Err(report) => {
-                println!("COMMAND ERROR: fen {report}");
+                println!("info fen {report}");
                 return None;
             }
         };
@@ -78,12 +78,12 @@ impl ReceiveUci {
 
     fn parse_perft(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         let Some(depth) = uci.next() else {
-            println!("COMMAND ERROR: perft requires a depth and position");
+            println!("info perft requires a depth and position");
             return None;
         };
         let depth = match depth.parse::<u8>() {
             Err(err) => {
-                println!("COMMAND ERROR: invalid depth '{err}'");
+                println!("info invalid depth '{err}'");
                 return None;
             }
             Ok(u8) => u8,
@@ -91,7 +91,7 @@ impl ReceiveUci {
         let pos = match uci.next() {
             Some(a) => a,
             None => {
-                println!("COMMAND ERROR: command needs a 'fen ...' , 'startpos' or 'self'");
+                println!("info command needs a 'fen ...' , 'startpos' or 'self'");
                 return None;
             }
         };
@@ -100,7 +100,7 @@ impl ReceiveUci {
             "fen" => Some(ReceiveUci::parse_fen(&mut uci)?),
             "self" => None,
             _ => {
-                println!("COMMAND ERROR: try 'fen ...' , 'startpos' or 'self'");
+                println!("info try 'fen ...' , 'startpos' or 'self'");
                 return None;
             }
         };
@@ -127,12 +127,12 @@ impl ReceiveUci {
             }
 
             let Some(raw_val) = raw_val else {
-                println!("COMMAND ERROR: second numeric argument expected after '{arg}'");
+                println!("info second numeric argument expected after '{arg}'");
                 return None;
             };
 
             let Ok(val) = raw_val.parse::<u32>() else {
-                println!("COMMAND ERROR: '{raw_val}' not a valid number");
+                println!("info '{raw_val}' not a valid number");
                 return None;
             };
 
@@ -159,7 +159,7 @@ impl ReceiveUci {
                     depth = Some(u8::try_from(val).ok()?);
                 }
                 _ => {
-                    println!("COMMAND ERROR: unknown argument '{arg}'");
+                    println!("info unknown argument '{arg}'");
                     return None;
                 }
             }
@@ -176,7 +176,7 @@ impl ReceiveUci {
 
     fn parse_pos(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         let Some(pos) = uci.next() else {
-            println!("COMMAND ERROR: after pos try 'startpos' or 'fen ...'");
+            println!("info after pos try 'startpos' or 'fen ...'");
             return None;
         };
 
@@ -184,7 +184,7 @@ impl ReceiveUci {
             "startpos" => Board::startpos(),
             "fen" => ReceiveUci::parse_fen(&mut uci)?,
             _ => {
-                println!("COMMAND ERROR: unknown argument '{pos}'");
+                println!("info unknown argument '{pos}'");
                 return None;
             }
         };
@@ -194,13 +194,13 @@ impl ReceiveUci {
         };
 
         if mv_command != "moves" {
-            println!("COMMAND ERROR: leave blank or try 'moves <mv1> <mv2> ...'");
+            println!("info leave blank or try 'moves <mv1> <mv2> ...'");
             return None;
         }
 
         let uci_mv = uci.collect();
         if let Err(message) = board.apply_uci_moves(uci_mv) {
-            println!("COMMAND ERROR: {message}");
+            println!("info {message}");
             return None;
         }
 

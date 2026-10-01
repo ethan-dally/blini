@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::Result;
 
 use crate::{
     board::board::Board,
@@ -11,7 +11,7 @@ use crate::{
     uci::Engine,
 };
 
-pub const DEPTH: u8 = 3;
+pub const DEPTH: u8 = 4;
 
 const BENCH_FENS: &[&str] = &[
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
@@ -29,6 +29,8 @@ const BENCH_FENS: &[&str] = &[
 ];
 
 impl Engine {
+    // floor division is wanted here to display whole nums
+    #[allow(clippy::integer_division)]
     pub fn run_bench(&mut self) -> Result<()> {
         let boards: Vec<_> = BENCH_FENS
             .iter()
@@ -36,7 +38,7 @@ impl Engine {
             .collect();
 
         let mut total_time = Duration::ZERO;
-        let mut total_nodes = 0u64;
+        let mut total_nodes = 0u128;
 
         for board in boards {
             let time_manager = TimeManager::new(Some(DEPTH), None, None);
@@ -46,15 +48,13 @@ impl Engine {
                 .start_search(board, time_manager, SearchStdOut::None)?;
             self.search.wait()?;
             total_time += time.elapsed();
-            total_nodes += data.nodes.load(Ordering::Relaxed);
+            total_nodes += u128::from(data.nodes.load(Ordering::Relaxed));
         }
 
-        let total_millis = u64::try_from(total_time.as_millis())?;
-        if total_millis == 0 {
-            return Err(eyre!("bench speed is unmeasureably fast"));
-        }
-
-        let nps = (total_nodes * 1000u64).div_ceil(total_millis);
+        // +1 to avoid /0 error, too small to be noticable
+        let total_nanos = total_time.as_nanos() + 1;
+        let nps = total_nodes * 1_000_000_000u128 / total_nanos;
+        let total_millis = total_nanos / 1_000_000;
         println!("nodes {total_nodes} time {total_millis} nps {nps}");
         Ok(())
     }
