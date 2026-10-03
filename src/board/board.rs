@@ -1,6 +1,9 @@
 use enum_map::EnumMap;
 
-use crate::{board::zobrist::Zobrist, common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square}};
+use crate::{
+    board::zobrist::Zobrist,
+    common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Board {
@@ -17,19 +20,18 @@ pub struct Board {
 
 #[allow(dead_code)]
 impl Board {
-
     #[inline]
     pub fn empty() -> Board {
-        Board { 
+        Board {
             pieces: EnumMap::default(),
-            colours: EnumMap::default(), 
+            colours: EnumMap::default(),
             mailbox: EnumMap::default(),
             stm: Colour::White,
             castling: Castling::EMPTY,
             en_passant: None,
             hmc: 0,
-            fmn: 0, 
-            zobrist: Zobrist::Castling(Castling::EMPTY).get()
+            fmn: 0,
+            zobrist: Zobrist::Castling(Castling::EMPTY).get(),
         }
     }
 
@@ -83,7 +85,7 @@ impl Board {
     pub fn try_remove_piece(&mut self, sqr: Square) -> Option<Piece> {
         if self.mailbox[sqr].is_some() {
             return Some(self.remove_piece(sqr));
-        } 
+        }
         None
     }
 
@@ -159,22 +161,22 @@ impl Board {
 pub struct Castling(u8);
 
 impl Castling {
-
     #[inline]
+    #[allow(unused)]
     pub fn from_u8(raw_u8: u8) -> Castling {
         Castling(raw_u8)
     }
 
     #[inline]
     pub fn get_castling(&self, colour: Colour, is_kingside: bool) -> bool {
-        let index = colour as u8 | (is_kingside as u8) << 1;
+        let index = colour as u8 | (u8::from(is_kingside)) << 1;
         let mask = 0b1 << index;
         self.0 & mask != 0
     }
 
     #[inline]
     pub fn set_castling(&mut self, colour: Colour, is_kingside: bool, change_to: bool) {
-        let index = colour as u8 | (is_kingside as u8) << 1;
+        let index = colour as u8 | (u8::from(is_kingside)) << 1;
         let mask = 0b1 << index;
         if change_to {
             self.0 |= mask;
@@ -188,11 +190,8 @@ impl Castling {
         self.0
     }
 
-    const EMPTY: Castling = {
-        Castling(0)
-    };
+    const EMPTY: Castling = { Castling(0) };
 
-    const FULL: Castling = {
-        Castling(0xF)
-    };
+    #[allow(unused)]
+    const FULL: Castling = { Castling(0xF) };
 }

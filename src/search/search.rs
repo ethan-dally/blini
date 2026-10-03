@@ -194,7 +194,8 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             new_board.do_move(mv);
 
             let Some(score) =
-                negamax_recursion(new_board, ply - 1, &mut rng, &mut node_count, &shared).map(|s| -s)
+                negamax_recursion(new_board, ply - 1, &mut rng, &mut node_count, &shared)
+                    .map(|s| -s)
             else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);

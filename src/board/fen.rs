@@ -1,7 +1,8 @@
 use color_eyre::eyre::{OptionExt, Result, eyre};
 
 use crate::{
-    board::{board::Board, zobrist::Zobrist}, common::{
+    board::{board::Board, zobrist::Zobrist},
+    common::{
         colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square,
     },
 };

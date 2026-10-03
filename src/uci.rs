@@ -180,7 +180,7 @@ impl ReceiveUci {
             return None;
         };
 
-        let mut board: Board = match pos.to_ascii_lowercase().as_str() {
+        let board: Board = match pos.to_ascii_lowercase().as_str() {
             "startpos" => Board::startpos(),
             "fen" => ReceiveUci::parse_fen(&mut uci)?,
             _ => {
@@ -204,7 +204,7 @@ impl ReceiveUci {
                 println!("info {message}");
                 return None;
             }
-            Ok(board) => board
+            Ok(board) => board,
         };
 
         Some(ReceiveUci::Position(board))
