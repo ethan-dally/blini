@@ -199,10 +199,13 @@ impl ReceiveUci {
         }
 
         let uci_mv = uci.collect();
-        if let Err(message) = board.apply_uci_moves(uci_mv) {
-            println!("info {message}");
-            return None;
-        }
+        let board = match board.apply_uci_moves(uci_mv) {
+            Err(message) => {
+                println!("info {message}");
+                return None;
+            }
+            Ok(board) => board
+        };
 
         Some(ReceiveUci::Position(board))
     }
@@ -320,8 +323,8 @@ impl Engine {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
     use crate::{board::board::Board, uci::ReceiveUci};
 
     #[test]
@@ -355,8 +358,9 @@ mod tests {
         );
 
         // Position
-        let mut board = Board::startpos();
-        board.apply_uci_moves(vec!["e2e4", "e7e5"]).unwrap();
+        let board = Board::startpos()
+            .apply_uci_moves(vec!["e2e4", "e7e5"])
+            .unwrap();
         assert_eq!(
             ReceiveUci::parse("position startpos".split_whitespace()),
             Some(ReceiveUci::Position(Board::startpos()))

@@ -41,6 +41,17 @@ impl Piece {
             Colour::Black => c,
         }
     }
+
+    pub const ALL: [Piece; 6] = {
+        [
+            Piece::Pawn,
+            Piece::Rook,
+            Piece::Knight,
+            Piece::Bishop,
+            Piece::Queen,
+            Piece::King,
+        ]
+    };
 }
 
 impl TryFrom<char> for Piece {

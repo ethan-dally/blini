@@ -111,6 +111,7 @@ impl TimeManager {
     }
 
     #[allow(clippy::integer_division)]
+    //time is in ms, so the floor divide seems like a resonable approach
     fn hard_time(time: u32, increment: u32) -> u32 {
         time / 17 + increment / 2
     }

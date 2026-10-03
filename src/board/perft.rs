@@ -109,7 +109,7 @@ impl Board {
     }
 }
 
-#[allow(dead_code, unused_imports)]
+#[cfg(test)]
 mod test {
     use crate::board::board::Board;
     const KIWI_PETE_FEN: &str =

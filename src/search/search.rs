@@ -170,7 +170,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
     }
 
     //early return check
-    let first_move = moves.clone().into_iter().next().unwrap();
+    let first_move = moves.0[0];
     if length == 1 {
         shared.depth.store(0, Ordering::Relaxed);
         shared.nodes.store(1, Ordering::Relaxed);

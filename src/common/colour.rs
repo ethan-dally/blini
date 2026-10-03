@@ -23,6 +23,8 @@ impl Colour {
     pub const fn to_bool(self) -> bool {
         (self as usize) == 0b1
     }
+
+    pub const ALL: [Colour; 2] = {[Colour::Black, Colour::White]};
 }
 
 impl From<bool> for Colour {

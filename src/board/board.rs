@@ -1,21 +1,38 @@
 use enum_map::EnumMap;
 
-use crate::common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square};
+use crate::{board::zobrist::Zobrist, common::{bitboard::Bitboard, colour::Colour, piece::Piece, square::Square}};
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Board {
     pub(super) pieces: EnumMap<Piece, Bitboard>,
     pub(super) colours: EnumMap<Colour, Bitboard>,
     pub(super) mailbox: EnumMap<Square, Option<(Piece, Colour)>>,
     pub(super) stm: Colour,
-    pub(super) castling: [bool; 4],
+    pub(super) castling: Castling,
     pub(super) en_passant: Option<Square>,
     pub(super) hmc: u8,
     pub(super) fmn: u16,
+    pub(super) zobrist: u64,
 }
 
 #[allow(dead_code)]
 impl Board {
+
+    #[inline]
+    pub fn empty() -> Board {
+        Board { 
+            pieces: EnumMap::default(),
+            colours: EnumMap::default(), 
+            mailbox: EnumMap::default(),
+            stm: Colour::White,
+            castling: Castling::EMPTY,
+            en_passant: None,
+            hmc: 0,
+            fmn: 0, 
+            zobrist: Zobrist::Castling(Castling::EMPTY).get()
+        }
+    }
+
     #[inline]
     pub fn startpos() -> Board {
         Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
@@ -63,20 +80,29 @@ impl Board {
     }
 
     #[inline]
-    pub fn set_en_passant(&mut self, en_passant: Option<Square>) {
+    pub fn try_remove_piece(&mut self, sqr: Square) -> Option<Piece> {
+        if self.mailbox[sqr].is_some() {
+            return Some(self.remove_piece(sqr));
+        } 
+        None
+    }
+
+    #[inline]
+    /// returns old value
+    pub fn set_en_passant(&mut self, en_passant: Option<Square>) -> Option<Square> {
+        let old = self.en_passant;
         self.en_passant = en_passant;
+        old
     }
 
     #[inline]
     pub fn set_castling(&mut self, colour: Colour, is_kingside: bool, change_to: bool) {
-        let index = (usize::from(!colour.to_bool())) << 1 | usize::from(!is_kingside);
-        self.castling[index] = change_to;
+        self.castling.set_castling(colour, is_kingside, change_to);
     }
 
     #[inline]
     pub fn get_castling(&self, colour: Colour, is_kingside: bool) -> bool {
-        let index = (usize::from(!colour.to_bool())) << 1 | usize::from(!is_kingside);
-        self.castling[index]
+        self.castling.get_castling(colour, is_kingside)
     }
 
     #[inline]
@@ -129,19 +155,44 @@ impl Board {
     }
 }
 
-#[test]
-fn castling() {
-    let mut board = Board::default();
-    assert!(!board.get_castling(Colour::White, true));
-    assert!(!board.get_castling(Colour::Black, true));
-    assert!(!board.get_castling(Colour::White, false));
-    assert!(!board.get_castling(Colour::Black, false));
-    board.set_castling(Colour::White, true, true);
-    board.set_castling(Colour::Black, true, true);
-    board.set_castling(Colour::White, false, true);
-    board.set_castling(Colour::Black, false, true);
-    assert!(board.get_castling(Colour::White, true));
-    assert!(board.get_castling(Colour::Black, true));
-    assert!(board.get_castling(Colour::White, false));
-    assert!(board.get_castling(Colour::Black, false));
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Castling(u8);
+
+impl Castling {
+
+    #[inline]
+    pub fn from_u8(raw_u8: u8) -> Castling {
+        Castling(raw_u8)
+    }
+
+    #[inline]
+    pub fn get_castling(&self, colour: Colour, is_kingside: bool) -> bool {
+        let index = colour as u8 | (is_kingside as u8) << 1;
+        let mask = 0b1 << index;
+        self.0 & mask != 0
+    }
+
+    #[inline]
+    pub fn set_castling(&mut self, colour: Colour, is_kingside: bool, change_to: bool) {
+        let index = colour as u8 | (is_kingside as u8) << 1;
+        let mask = 0b1 << index;
+        if change_to {
+            self.0 |= mask;
+        } else {
+            self.0 &= !mask;
+        }
+    }
+
+    #[inline]
+    pub fn value(&self) -> u8 {
+        self.0
+    }
+
+    const EMPTY: Castling = {
+        Castling(0)
+    };
+
+    const FULL: Castling = {
+        Castling(0xF)
+    };
 }

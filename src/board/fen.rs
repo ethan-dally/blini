@@ -1,15 +1,14 @@
 use color_eyre::eyre::{OptionExt, Result, eyre};
 
 use crate::{
-    board::board::Board,
-    common::{
+    board::{board::Board, zobrist::Zobrist}, common::{
         colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square,
     },
 };
 
 impl Board {
     pub fn parse_fen(fen: &str) -> Result<Board> {
-        let mut board = Board::default();
+        let mut board = Board::empty();
         let mut parts = fen.split_whitespace();
 
         let pieces = parts
@@ -141,6 +140,10 @@ impl Board {
             .parse::<u16>()
             .or(Err(eyre!("fmc not a valid number")))?;
         board.set_fmn(fmc);
+        /*
+        zobrist
+        */
+        board.zobrist = Zobrist::calculate(&board);
         Ok(board)
     }
 }
