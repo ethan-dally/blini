@@ -7,7 +7,6 @@ pub struct Position {
 }
 
 impl Position {
-
     #[inline]
     pub fn new(board: Board, depth_hint: usize) -> Position {
         Position {

@@ -257,7 +257,6 @@ fn negamax_recursion(
     node_count: &mut u64,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
-
     if position.is_draw() {
         return Some(Score::DRAW);
     }
