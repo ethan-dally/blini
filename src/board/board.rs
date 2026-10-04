@@ -18,7 +18,6 @@ pub struct Board {
     pub(super) zobrist: u64,
 }
 
-#[allow(dead_code)]
 impl Board {
     #[inline]
     pub fn empty() -> Board {
@@ -108,13 +107,20 @@ impl Board {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn fmn(&self) -> u16 {
         self.fmn
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn hmc(&self) -> u8 {
         self.hmc
+    }
+
+    #[inline]
+    pub fn zobrist(&self) -> u64 {
+        self.zobrist
     }
 
     pub fn stm(&self) -> Colour {
@@ -122,6 +128,7 @@ impl Board {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub fn colours(&self, colour: Colour) -> Bitboard {
         self.colours[colour]
     }
@@ -154,6 +161,23 @@ impl Board {
     #[inline]
     pub fn mailbox(&self, sqr: Square) -> Option<(Piece, Colour)> {
         self.mailbox[sqr]
+    }
+
+    #[inline]
+    /// NOTE: board could still be a draw relative to its position
+    pub fn is_draw(&self) -> bool {
+        if self.hmc >= 100 {
+            return true;
+        }
+
+        if self.pieces[Piece::Pawn] | self.pieces[Piece::Rook] | self.pieces[Piece::Queen]
+            == Bitboard::EMPTY
+            && (self.pieces[Piece::Bishop] | self.pieces[Piece::Knight]).count() <= 1
+        {
+            return true;
+        }
+
+        false
     }
 }
 

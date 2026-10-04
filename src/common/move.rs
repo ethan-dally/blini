@@ -40,6 +40,21 @@ impl MoveFlag {
             _ => unreachable!("shouldnt be called of flag {:?}", self),
         }
     }
+
+    #[inline]
+    pub fn is_promotion(&self) -> bool {
+        matches!(
+            *self,
+            MoveFlag::PromotionQueen
+                | MoveFlag::PromotionRook
+                | MoveFlag::PromotionBishop
+                | MoveFlag::PromotionKnight
+                | MoveFlag::CapturePromotionQueen
+                | MoveFlag::CapturePromotionRook
+                | MoveFlag::CapturePromotionBishop
+                | MoveFlag::CapturePromotionKnight
+        )
+    }
 }
 
 /*
@@ -85,14 +100,17 @@ impl Move {
 
     #[inline]
     pub fn uci(self) -> String {
-        [
+        let long_alg = format!(
+            "{}{}{}{}",
             char::from(self.src().file()),
             char::from(self.src().rank()),
             char::from(self.dst().file()),
-            char::from(self.dst().rank()),
-        ]
-        .iter()
-        .collect()
+            char::from(self.dst().rank())
+        );
+        if self.flag().is_promotion() {
+            return format!("{long_alg}{}", char::from(self.flag().piece()));
+        }
+        long_alg
     }
 }
 
@@ -116,6 +134,11 @@ impl MoveList {
     #[inline]
     pub fn iter(&self) -> std::slice::Iter<'_, Move> {
         self.0.iter()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     #[allow(dead_code)]
