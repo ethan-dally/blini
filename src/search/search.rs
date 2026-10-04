@@ -1,5 +1,6 @@
 use std::{
     cmp::max,
+    fmt::Display,
     sync::{
         Arc,
         atomic::{AtomicU8, AtomicU64, Ordering},
@@ -148,9 +149,14 @@ impl Score {
     const fn new() -> Score {
         Score(-10_000)
     }
-
     const DRAW: Score = Score(0);
     const CHECKMATE: Score = Score(10_000);
+}
+
+impl Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 impl std::ops::Neg for Score {
@@ -223,7 +229,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             let nps = shared.time_manager.calc_nps(nodes);
             let time = shared.time_manager.time();
             println!(
-                "info depth {ply} seldepth {ply} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
+                "info depth {ply} seldepth {ply} score {best_score} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
                 best_move.uci()
             );
         }
@@ -269,7 +275,11 @@ fn negamax_recursion(
     let moves = position.board().get_moves();
 
     if moves.is_empty() {
-        return Some(Score::CHECKMATE);
+        if position.board().in_check() {
+            return Some(-Score::CHECKMATE);
+        } else {
+            return Some(Score::DRAW);
+        }
     }
 
     let mut best_score = Score::new();

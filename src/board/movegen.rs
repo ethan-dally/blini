@@ -14,6 +14,14 @@ use crate::{
 };
 
 impl Board {
+    #[inline]
+    pub fn in_check(&self) -> bool {
+        let banned = self.calc_banned();
+        let us_king = self.pieces(Piece::King) & self.us_pieces();
+        (banned & us_king) == Bitboard::EMPTY
+    }
+
+    #[inline]
     pub fn get_moves(&self) -> MoveList {
         let banned = self.calc_banned();
         let (checkmask, orth_pin_mask, diag_pin_mask) = self.check_and_pin_masks();
