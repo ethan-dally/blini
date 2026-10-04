@@ -196,7 +196,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             new_pos.do_move(mv);
 
             let Some(score) =
-                negamax_recursion(&new_pos, ply - 1, &mut rng, &mut node_count, &shared)
+                negamax_recursion(&mut new_pos, ply - 1, &mut rng, &mut node_count, &shared)
                     .map(|s| -s)
             else {
                 // recursion only returns none if hit hard limit
@@ -251,12 +251,17 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
 
 #[inline]
 fn negamax_recursion(
-    position: &Position,
+    position: &mut Position,
     depth: u8,
     rng: &mut ThreadRng,
     node_count: &mut u64,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
+
+    if position.is_draw() {
+        return Some(Score::DRAW);
+    }
+
     if depth == 0 {
         *node_count += 1;
         return Some(random_eval(position, rng));
@@ -268,10 +273,6 @@ fn negamax_recursion(
         return Some(Score::CHECKMATE);
     }
 
-    if position.is_draw() {
-        return Some(Score::DRAW);
-    }
-
     let mut best_score = Score::new();
     for mv in moves {
         if (*node_count).is_multiple_of(0x400)
@@ -280,9 +281,10 @@ fn negamax_recursion(
             return None;
         }
 
-        let mut new_position = position.clone();
-        new_position.do_move(mv);
-        let score = -negamax_recursion(&new_position, depth - 1, rng, node_count, shared)?;
+        let prev_board = position.board().clone();
+        position.do_move(mv);
+        let score = -negamax_recursion(position, depth - 1, rng, node_count, shared)?;
+        position.undo_move(prev_board);
         best_score = max(best_score, score);
     }
     *node_count += 1;
@@ -290,9 +292,6 @@ fn negamax_recursion(
 }
 
 #[inline]
-fn random_eval(position: &Position, rng: &mut ThreadRng) -> Score {
-    if position.is_draw() {
-        return Score::DRAW;
-    }
+fn random_eval(_position: &Position, rng: &mut ThreadRng) -> Score {
     Score(rng.random_range(-10_000..=10_000))
 }

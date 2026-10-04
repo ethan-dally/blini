@@ -1,18 +1,25 @@
 use crate::{board::board::Board, common::r#move::Move};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Position {
     board: Board,
     prev: Vec<u64>,
 }
 
 impl Position {
+
     #[inline]
     pub fn new(board: Board, depth_hint: usize) -> Position {
         Position {
             board,
             prev: Vec::with_capacity(depth_hint),
         }
+    }
+
+    #[inline]
+    pub fn undo_move(&mut self, prev_board: Board) {
+        self.prev.pop();
+        self.board = prev_board;
     }
 
     #[inline]
