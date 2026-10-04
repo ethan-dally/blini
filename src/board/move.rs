@@ -198,18 +198,28 @@ impl Board {
     #[inline]
     pub fn apply_uci_moves(mut self, uci_mv: Vec<&str>) -> Result<Self, String> {
         for mv in uci_mv {
-            let Some((raw_src, raw_dst)) = mv.split_at_checked(2) else {
-                return Err(format!("couldnt split move '{mv}'"));
+            let (Some(raw_src), Some(raw_dst)) = (mv.get(0..2), mv.get(2..4)) else {
+                return Err(format!("couldn't split move '{mv}'"));
             };
+
+            let promoted_to = match mv.get(4..) {
+                Some("") => None,
+                Some(s) => Some(Piece::try_from(s)?),
+                None => return Err(format!("couldn't split move '{mv}'")),
+            };
+
             let Some(src) = Square::parse(raw_src) else {
                 return Err(format!("couldnt parse src '{raw_src}' in '{mv}'"));
             };
+
             let Some(dst) = Square::parse(raw_dst) else {
-                return Err(format!("couldnt parse src '{raw_dst}' in '{mv}'"));
+                return Err(format!("couldnt parse dst '{raw_dst}' in '{mv}'"));
             };
-            let Some(verified_move) = self.get_moves().find(src, dst) else {
+
+            let Some(verified_move) = self.get_moves().find(src, dst, promoted_to) else {
                 return Err(format!("move '{mv}' is not a legal move"));
             };
+
             self.do_move(verified_move);
         }
         Ok(self)

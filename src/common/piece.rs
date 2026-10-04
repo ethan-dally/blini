@@ -68,3 +68,18 @@ impl TryFrom<char> for Piece {
         }
     }
 }
+
+impl TryFrom<&str> for Piece {
+    type Error = String;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match &*value.to_ascii_lowercase() {
+            "p" => Ok(Piece::Pawn),
+            "r" => Ok(Piece::Rook),
+            "n" => Ok(Piece::Knight),
+            "b" => Ok(Piece::Bishop),
+            "q" => Ok(Piece::Queen),
+            "k" => Ok(Piece::King),
+            _ => Err("invalid piece string".to_string()),
+        }
+    }
+}

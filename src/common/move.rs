@@ -124,11 +124,20 @@ impl MoveList {
     }
 
     #[inline]
-    pub fn find(&self, src: Square, dst: Square) -> Option<Move> {
-        self.0
-            .iter()
-            .copied()
-            .find(|mv| mv.dst() == dst && mv.src() == src)
+    pub fn find(&self, src: Square, dst: Square, promoted_to: Option<Piece>) -> Option<Move> {
+        if let Some(piece) = promoted_to {
+            self
+                .0
+                .iter()
+                .copied()
+                .find(|mv| mv.dst() == dst && mv.src() == src && mv.flag().piece() == piece)
+        } else {
+            self
+                .0
+                .iter()
+                .copied()
+                .find(|mv| mv.dst() == dst && mv.src() == src && !mv.flag().is_promotion())
+        }
     }
 
     #[inline]
