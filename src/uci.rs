@@ -31,10 +31,7 @@ enum ReceiveUci {
     UciNewGame,
     IsReady,
     Bench,
-    Perft {
-        depth: u8,
-        board: Option<Board>,
-    },
+    Perft(u8),
 }
 
 impl ReceiveUci {
@@ -46,7 +43,6 @@ impl ReceiveUci {
         match uci_raw.to_ascii_lowercase().as_str() {
             "go" => ReceiveUci::parse_go(uci),
             "position" => ReceiveUci::parse_pos(uci),
-            "perft" => ReceiveUci::parse_perft(uci),
             "stop" => Some(ReceiveUci::Stop),
             "quit" => Some(ReceiveUci::Quit),
             "uci" => Some(ReceiveUci::Uci),
@@ -76,37 +72,6 @@ impl ReceiveUci {
         Some(board)
     }
 
-    fn parse_perft(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
-        let Some(depth) = uci.next() else {
-            println!("info perft requires a depth and position");
-            return None;
-        };
-        let depth = match depth.parse::<u8>() {
-            Err(err) => {
-                println!("info invalid depth '{err}'");
-                return None;
-            }
-            Ok(u8) => u8,
-        };
-        let pos = match uci.next() {
-            Some(a) => a,
-            None => {
-                println!("info command needs a 'fen ...' , 'startpos' or 'self'");
-                return None;
-            }
-        };
-        let board: Option<Board> = match pos {
-            "startpos" => Some(Board::startpos()),
-            "fen" => Some(ReceiveUci::parse_fen(&mut uci)?),
-            "self" => None,
-            _ => {
-                println!("info try 'fen ...' , 'startpos' or 'self'");
-                return None;
-            }
-        };
-        Some(ReceiveUci::Perft { depth, board })
-    }
-
     fn parse_go(mut uci: SplitWhitespace<'_>) -> Option<ReceiveUci> {
         //reasonable defaults
         let mut wtime: Option<u32> = None;
@@ -124,6 +89,22 @@ impl ReceiveUci {
                 binc = None;
                 depth = None;
                 break;
+            }
+
+            if arg == "perft" {
+                if uci.next().is_some() {
+                    println!("info no text allowed after the command");
+                    return None;
+                }
+                let Some(depth_str) = raw_val else {
+                    println!("info numeric argument expected after 'perft'");
+                    return None;
+                };
+                let Ok(depth) = depth_str.parse::<u8>() else {
+                    println!("info '{depth_str}' not a valid depth");
+                    return None;
+                };
+                return Some(ReceiveUci::Perft(depth));
             }
 
             let Some(raw_val) = raw_val else {
@@ -309,9 +290,8 @@ impl Engine {
                 self.search.stop();
                 Ok(Abort::No)
             }
-            ReceiveUci::Perft { depth, board } => {
-                let board = board.unwrap_or(self.position.clone());
-                Engine::run_perft(board, depth);
+            ReceiveUci::Perft(depth) => {
+                Engine::run_perft(self.position.clone(), depth);
                 Ok(Abort::No)
             }
         }
@@ -435,22 +415,6 @@ mod tests {
                 winc: Some(100),
                 binc: Some(200),
                 depth: Some(10),
-            })
-        );
-
-        // Perft
-        assert_eq!(
-            ReceiveUci::parse("perft 5 self".split_whitespace()),
-            Some(ReceiveUci::Perft {
-                depth: 5,
-                board: None,
-            })
-        );
-        assert_eq!(
-            ReceiveUci::parse("perft 1 self".split_whitespace()),
-            Some(ReceiveUci::Perft {
-                depth: 1,
-                board: None,
             })
         );
 

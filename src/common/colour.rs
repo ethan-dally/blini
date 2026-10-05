@@ -27,6 +27,12 @@ impl Colour {
     pub const ALL: [Colour; 2] = { [Colour::Black, Colour::White] };
 }
 
+impl From<Colour> for char {
+    fn from(value: Colour) -> Self {
+        if value == Colour::White { 'w' } else { 'b' }
+    }
+}
+
 impl From<bool> for Colour {
     fn from(value: bool) -> Self {
         if value { Colour::White } else { Colour::Black }

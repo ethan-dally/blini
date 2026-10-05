@@ -214,8 +214,8 @@ impl Castling {
         self.0
     }
 
-    const EMPTY: Castling = { Castling(0) };
+    pub const EMPTY: Castling = { Castling(0) };
 
     #[allow(unused)]
-    const FULL: Castling = { Castling(0xF) };
+    pub const FULL: Castling = { Castling(0xF) };
 }

@@ -79,10 +79,10 @@ impl Board {
     fn check_and_pin_masks(&self) -> (Bitboard, Bitboard, Bitboard) {
         let magics = magic_table();
 
-        let us_king: Square = (self.pieces(Piece::King) & self.us_pieces())
+        let us_king = (self.pieces(Piece::King) & self.us_pieces())
             .iter()
             .next()
-            .expect("there should be exactly 1 king");
+            .expect("there should be exactly 1 us_king");
 
         let them_orth = (self.pieces(Piece::Rook) | self.pieces(Piece::Queen)) & self.them_pieces();
         let them_diag =
@@ -495,11 +495,11 @@ impl Board {
                 & !self.us_pieces();
 
             if diag_pin_mask & src.to_bb() != Bitboard::EMPTY {
-                queen_moves &= diag_pin_mask;
+                queen_moves &= diag_pin_mask & table.get_diag(self.all_pieces(), src);
             }
 
             if orth_pin_mask & src.to_bb() != Bitboard::EMPTY {
-                queen_moves &= orth_pin_mask;
+                queen_moves &= orth_pin_mask & table.get_orth(self.all_pieces(), src);
             }
 
             for dst in (queen_moves & self.them_pieces()).iter() {

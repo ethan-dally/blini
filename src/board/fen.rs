@@ -1,9 +1,17 @@
 use color_eyre::eyre::{OptionExt, Result, eyre};
 
 use crate::{
-    board::{board::Board, zobrist::Zobrist},
+    board::{
+        board::{Board, Castling},
+        zobrist::Zobrist,
+    },
     common::{
-        colour::Colour, direction::South, file::File, piece::Piece, rank::Rank, square::Square,
+        colour::Colour,
+        direction::{North, South},
+        file::File,
+        piece::Piece,
+        rank::Rank,
+        square::Square,
     },
 };
 
@@ -141,73 +149,197 @@ impl Board {
             .parse::<u16>()
             .or(Err(eyre!("fmc not a valid number")))?;
         board.set_fmn(fmc);
+
         /*
         zobrist
         */
         board.zobrist = Zobrist::calculate(&board);
         Ok(board)
     }
+
+    #[inline]
+    #[allow(dead_code)]
+    pub fn to_fen(&self) -> String {
+        let mut fen = String::new();
+        for rank in Rank::ALL.iter().rev() {
+            let mut counter = 0;
+            for file in File::ALL {
+                if let Some((piece, colour)) = self.mailbox(Square::new(*rank, file)) {
+                    if counter != 0 {
+                        fen.push(char::from(b'0' + counter));
+                    }
+                    fen.push(piece.display(colour));
+                    counter = 0;
+                } else {
+                    counter += 1;
+                }
+            }
+
+            if counter != 0 {
+                fen.push(char::from(b'0' + counter));
+            }
+
+            if *rank != Rank::One {
+                fen.push('/');
+            }
+        }
+
+        let ep = match self.en_passant() {
+            Some(sqr) => {
+                let fen_sqr = sqr
+                    .relative_shift::<North>(self.stm(), 1)
+                    .expect("move gen code must have gone horribly wrong for this to fail");
+                &fen_sqr.to_string()
+            }
+            None => "-",
+        };
+
+        fen.push(' ');
+        fen.push(char::from(self.stm()));
+        fen.push(' ');
+        fen.push_str(&String::from(self.castling));
+        fen.push(' ');
+        fen.push_str(ep);
+        fen.push(' ');
+        fen.push_str(&self.hmc().to_string());
+        fen.push(' ');
+        fen.push_str(&self.fmn().to_string());
+        fen
+    }
 }
 
-#[test]
-fn fen_default() {
-    let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    assert_eq!(
-        board.mailbox(Square::A1),
-        Some((Piece::Rook, Colour::White))
-    );
-    assert_eq!(
-        board.mailbox(Square::D8),
-        Some((Piece::Queen, Colour::Black))
-    );
-    assert_eq!(
-        board.pieces(Piece::Queen),
-        Square::D1.to_bb() | Square::D8.to_bb()
-    );
-    assert_eq!(
-        board.pieces(Piece::Pawn),
-        Rank::Two.to_bb() | Rank::Seven.to_bb()
-    );
-    assert_eq!(board.stm(), Colour::White);
-    assert!(board.get_castling(Colour::White, true));
-    assert!(board.get_castling(Colour::Black, true));
-    assert!(board.get_castling(Colour::White, false));
-    assert!(board.get_castling(Colour::Black, false));
-    assert_eq!(board.en_passant(), None);
-    assert_eq!(board.hmc(), 0);
-    assert_eq!(board.fmn(), 1);
+impl From<Castling> for String {
+    fn from(castling: Castling) -> Self {
+        if castling.value() == 0 {
+            "-".to_string()
+        } else {
+            let mut out: String = "".to_string();
+            if castling.get_castling(Colour::White, true) {
+                out.push('K');
+            }
+            if castling.get_castling(Colour::White, false) {
+                out.push('Q');
+            }
+            if castling.get_castling(Colour::Black, true) {
+                out.push('k');
+            }
+            if castling.get_castling(Colour::Black, false) {
+                out.push('q');
+            }
+            out
+        }
+    }
 }
 
-#[test]
-fn fen_custom_position() {
-    let board = Board::parse_fen("r3k2r/ppp2ppp/2n5/3pP3/8/2N5/PPP2PPP/R3K2R b Kq d6 17 42")
-        .map_err(|s| panic!("invalid fen as {s}"))
-        .unwrap();
-    assert_eq!(
-        board.mailbox(Square::A8),
-        Some((Piece::Rook, Colour::Black))
+#[cfg(test)]
+mod test {
+    use crate::{
+        board::board::{Board, Castling},
+        common::{colour::Colour, piece::Piece, rank::Rank, square::Square},
+    };
+
+    #[test]
+    fn castling_to_string() {
+        for index in 0..16 {
+            let castling1 = Castling::from_u8(index);
+            let wk = castling1.get_castling(Colour::White, true);
+            let bk = castling1.get_castling(Colour::Black, true);
+            let wq = castling1.get_castling(Colour::White, false);
+            let bq = castling1.get_castling(Colour::Black, false);
+            let mut castling2 = Castling::EMPTY;
+            castling2.set_castling(Colour::White, true, wk);
+            castling2.set_castling(Colour::Black, true, bk);
+            castling2.set_castling(Colour::White, false, wq);
+            castling2.set_castling(Colour::Black, false, bq);
+            assert_eq!(castling1, castling2);
+        }
+    }
+
+    #[test]
+    fn fen_default() {
+        let board = Board::parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+            .map_err(|s| panic!("invalid fen as {s}"))
+            .unwrap();
+        assert_eq!(
+            board.mailbox(Square::A1),
+            Some((Piece::Rook, Colour::White))
+        );
+        assert_eq!(
+            board.mailbox(Square::D8),
+            Some((Piece::Queen, Colour::Black))
+        );
+        assert_eq!(
+            board.pieces(Piece::Queen),
+            Square::D1.to_bb() | Square::D8.to_bb()
+        );
+        assert_eq!(
+            board.pieces(Piece::Pawn),
+            Rank::Two.to_bb() | Rank::Seven.to_bb()
+        );
+        assert_eq!(board.stm(), Colour::White);
+        assert!(board.get_castling(Colour::White, true));
+        assert!(board.get_castling(Colour::Black, true));
+        assert!(board.get_castling(Colour::White, false));
+        assert!(board.get_castling(Colour::Black, false));
+        assert_eq!(board.en_passant(), None);
+        assert_eq!(board.hmc(), 0);
+        assert_eq!(board.fmn(), 1);
+    }
+
+    #[test]
+    fn fen_custom_position() {
+        let board = Board::parse_fen("r3k2r/ppp2ppp/2n5/3pP3/8/2N5/PPP2PPP/R3K2R b Kq d6 17 42")
+            .map_err(|s| panic!("invalid fen as {s}"))
+            .unwrap();
+        assert_eq!(
+            board.mailbox(Square::A8),
+            Some((Piece::Rook, Colour::Black))
+        );
+        assert_eq!(
+            board.mailbox(Square::E8),
+            Some((Piece::King, Colour::Black))
+        );
+        assert_eq!(
+            board.mailbox(Square::E5),
+            Some((Piece::Pawn, Colour::White))
+        );
+        assert_eq!(
+            board.mailbox(Square::C3),
+            Some((Piece::Knight, Colour::White))
+        );
+        assert_eq!(board.mailbox(Square::D8), None);
+        assert_eq!(board.stm(), Colour::Black);
+        assert!(board.get_castling(Colour::White, true));
+        assert!(!board.get_castling(Colour::White, false));
+        assert!(!board.get_castling(Colour::Black, true));
+        assert!(board.get_castling(Colour::Black, false));
+        assert_eq!(board.en_passant(), Some(Square::D7));
+        assert_eq!(board.hmc(), 17);
+        assert_eq!(board.fmn(), 42);
+    }
+
+    macro_rules! to_fen_test {
+        ($name:ident, $fen:expr) => {
+            #[test]
+            fn $name() {
+                let board = Board::parse_fen($fen).expect("fen incorrect");
+                assert_eq!(&*board.to_fen(), $fen)
+            }
+        };
+    }
+
+    to_fen_test!(to_fen_1, "8/8/8/8/8/8/8/K6k w Qk - 0 1");
+    to_fen_test!(to_fen_2, "k7/8/8/8/8/8/8/7K b Kk - 0 1");
+    to_fen_test!(to_fen_3, "Q6k/8/8/8/8/8/8/K6q w Qq - 0 1");
+    to_fen_test!(to_fen_4, "r3k2r/ppp2ppp/8/8/8/8/PPP2PPP/R3K2R w KQkq - 0 1");
+    to_fen_test!(to_fen_5, "r6k/8/8/3pP3/8/8/8/K7 b - d6 0 25");
+    to_fen_test!(to_fen_6, "8/8/8/8/8/8/8/K6k w KQkq - 0 1");
+    to_fen_test!(to_fen_7, "8/8/8/8/8/8/8/K6k b - - 49 100");
+    to_fen_test!(to_fen_8, "8/8/8/8/8/8/8/K6k w - - 0 9999");
+    to_fen_test!(
+        to_fen_9,
+        "rnbqk2r/ppp1bppp/3ppn2/8/2B1P3/2N1BN2/PPP2PPP/R2Q1RK1 w kq - 5 12"
     );
-    assert_eq!(
-        board.mailbox(Square::E8),
-        Some((Piece::King, Colour::Black))
-    );
-    assert_eq!(
-        board.mailbox(Square::E5),
-        Some((Piece::Pawn, Colour::White))
-    );
-    assert_eq!(
-        board.mailbox(Square::C3),
-        Some((Piece::Knight, Colour::White))
-    );
-    assert_eq!(board.mailbox(Square::D8), None);
-    assert_eq!(board.stm(), Colour::Black);
-    assert!(board.get_castling(Colour::White, true));
-    assert!(!board.get_castling(Colour::White, false));
-    assert!(!board.get_castling(Colour::Black, true));
-    assert!(board.get_castling(Colour::Black, false));
-    assert_eq!(board.en_passant(), Some(Square::D7));
-    assert_eq!(board.hmc(), 17);
-    assert_eq!(board.fmn(), 42);
+    to_fen_test!(to_fen_10, "8/5pk1/3p2p1/1p1P4/1P2P3/5PK1/8/8 w - - 42 67");
+    to_fen_test!(to_fen_11, "R3k2r/8/8/8/8/8/8/r3K2R b Kq e6 49 200");
 }

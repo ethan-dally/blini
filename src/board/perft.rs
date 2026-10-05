@@ -41,15 +41,23 @@ impl FlagsCount {
 
 impl Engine {
     pub fn run_perft(board: Board, depth: u8) {
-        let time = Instant::now();
-        let total_nodes = board.perft(depth);
-        let total_time = time.elapsed().as_millis();
-        if total_time == 0 {
-            println!("nodes {total_nodes} time {total_time} nps ???");
+        if depth == 0 {
+            println!("1 nodes");
             return;
         }
-        let nps = (u128::from(total_nodes) * 1000u128).div_ceil(total_time);
-        println!("nodes {total_nodes} time {total_time} nps {nps}");
+        let time = Instant::now();
+        let mut total_nodes = 0;
+        let root_move_list = board.get_moves();
+        for mv in root_move_list {
+            let mut next = board.clone();
+            next.do_move(mv);
+            let count = next.perft(depth - 1);
+            println!("{}: {count}", mv.uci());
+            total_nodes += count;
+        }
+        let total_time = time.elapsed().as_nanos() + 1;
+        let nps = (u128::from(total_nodes) * 1_000_000_000u128).div_ceil(total_time);
+        println!("{total_nodes} nodes {total_time} time {nps} nps");
     }
 }
 
@@ -112,25 +120,37 @@ impl Board {
 #[cfg(test)]
 mod test {
     use crate::board::board::Board;
-    const KIWI_PETE_FEN: &str =
+    const KIWIPETE_FEN: &str =
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
     macro_rules! perft {
-        ($name:ident, $depth:expr, $perft_val:expr $(, #[$attr:meta])?) => {
+        ($name:ident, $depth:expr, $perft_val:expr, $fen:expr $(, #[$attr:meta])?) => {
             #[test]
             $(#[$attr])?
             fn $name() {
-                let board = Board::parse_fen(KIWI_PETE_FEN).expect("fen incorrect");
+                let board = Board::parse_fen($fen).expect("fen incorrect");
                 assert_eq!(board.perft($depth), $perft_val, "failed at depth {}", $depth)
             }
         };
     }
 
-    perft!(kiwipete_1, 1, 48);
-    perft!(kiwipete_2, 2, 2039);
-    perft!(kiwipete_3, 3, 97_862);
-    perft!(kiwipete_4, 4, 4_085_603);
+    perft!(
+        custom_1,
+        3,
+        12737,
+        "rnb2k1r/pp2b1pp/4p1n1/qBPpPp2/5P2/4BNP1/PPP4P/RN1QK2R w KQ - 7 10"
+    );
+    perft!(
+        custom_2,
+        1,
+        37,
+        "rnb2k1r/pp4pp/4p1n1/qBPpPp2/5P1b/4BNP1/PPPQ3P/RN2K2R w KQ - 0 1"
+    );
+    perft!(kiwipete_1, 1, 48, KIWIPETE_FEN);
+    perft!(kiwipete_2, 2, 2039, KIWIPETE_FEN);
+    perft!(kiwipete_3, 3, 97_862, KIWIPETE_FEN);
+    perft!(kiwipete_4, 4, 4_085_603, KIWIPETE_FEN);
     //use --ignore to test higher depths
-    perft!(kiwipete_5, 5, 193_690_690, #[ignore]);
-    perft!(kiwipete_6, 6, 8_031_647_685, #[ignore]);
+    perft!(kiwipete_5, 5, 193_690_690, KIWIPETE_FEN,  #[ignore]);
+    perft!(kiwipete_6, 6, 8_031_647_685, KIWIPETE_FEN, #[ignore]);
 }
