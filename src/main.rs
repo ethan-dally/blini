@@ -5,6 +5,7 @@ use crate::{common::magics::magic_table, uci::Engine};
 mod bench;
 mod board;
 mod common;
+mod eval;
 mod search;
 mod uci;
 
