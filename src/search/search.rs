@@ -229,7 +229,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             let nps = shared.time_manager.calc_nps(nodes);
             let time = shared.time_manager.time();
             println!(
-                "info depth {ply} seldepth {ply} score {best_score} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
+                "info depth {ply} seldepth {ply} score cp {best_score} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
                 best_move.uci()
             );
         }
