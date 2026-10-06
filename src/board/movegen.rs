@@ -18,7 +18,7 @@ impl Board {
     pub fn in_check(&self) -> bool {
         let banned = self.calc_banned();
         let us_king = self.pieces(Piece::King) & self.us_pieces();
-        (banned & us_king) == Bitboard::EMPTY
+        (banned & us_king) != Bitboard::EMPTY
     }
 
     #[inline]
