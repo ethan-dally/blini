@@ -1,6 +1,5 @@
 use std::{
     cmp::max,
-    fmt::Display,
     sync::{
         Arc,
         atomic::{AtomicU8, AtomicU64, Ordering},
@@ -9,12 +8,12 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use rand::{RngExt, rngs::ThreadRng};
 use thiserror::Error;
 
 use crate::{
     board::board::Board,
     common::r#move::Move,
+    eval::material::{Score, eval},
     search::{position::Position, time::TimeManager},
 };
 
@@ -141,34 +140,8 @@ pub enum SearchError {
     CallerWait,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
-pub struct Score(i16);
-
-impl Score {
-    #[inline]
-    const fn new() -> Score {
-        Score(-10_000)
-    }
-    const DRAW: Score = Score(0);
-    const CHECKMATE: Score = Score(10_000);
-}
-
-impl Display for Score {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::ops::Neg for Score {
-    type Output = Score;
-    fn neg(self) -> Self::Output {
-        Score(-self.0)
-    }
-}
-
 #[inline]
 pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), SearchError> {
-    let mut rng = rand::rng();
     let moves = shared.board.get_moves();
 
     //checkmate check
@@ -202,8 +175,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             new_pos.do_move(mv);
 
             let Some(score) =
-                negamax_recursion(&mut new_pos, ply - 1, &mut rng, &mut node_count, &shared)
-                    .map(|s| -s)
+                negamax_recursion(&mut new_pos, ply - 1, &mut node_count, &shared).map(|s| -s)
             else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
@@ -259,7 +231,6 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
 fn negamax_recursion(
     position: &mut Position,
     depth: u8,
-    rng: &mut ThreadRng,
     node_count: &mut u64,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
@@ -269,7 +240,7 @@ fn negamax_recursion(
 
     if depth == 0 {
         *node_count += 1;
-        return Some(random_eval(position, rng));
+        return Some(eval(position.board()));
     }
 
     let moves = position.board().get_moves();
@@ -292,15 +263,10 @@ fn negamax_recursion(
 
         let prev_board = position.board().clone();
         position.do_move(mv);
-        let score = -negamax_recursion(position, depth - 1, rng, node_count, shared)?;
+        let score = -negamax_recursion(position, depth - 1, node_count, shared)?;
         position.undo_move(prev_board);
         best_score = max(best_score, score);
     }
     *node_count += 1;
     Some(best_score)
-}
-
-#[inline]
-fn random_eval(_position: &Position, rng: &mut ThreadRng) -> Score {
-    Score(rng.random_range(-10_000..=10_000))
 }
