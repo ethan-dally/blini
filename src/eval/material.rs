@@ -14,14 +14,10 @@ const PIECES: [(Piece, u32); 5] = [
 pub struct Score(i16);
 
 impl Score {
-    #[inline]
-    pub const fn new() -> Score {
-        Score(-10_000)
-    }
-
-    pub const DRAW: Score = Score(0);
-
     pub const CHECKMATE: Score = Score(10_000);
+    pub const MIN: Score = Score(-10_000);
+    pub const MAX: Score = Score(10_000);
+    pub const DRAW: Score = Score(0);
 }
 
 impl Display for Score {

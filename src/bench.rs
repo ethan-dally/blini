@@ -7,11 +7,11 @@ use color_eyre::eyre::Result;
 
 use crate::{
     board::board::Board,
-    search::{search::SearchStdOut, time::TimeManager},
+    search::{time::TimeManager, worker::SearchStdOut},
     uci::Engine,
 };
 
-pub const DEPTH: u8 = 4;
+pub const DEPTH: u8 = 5;
 
 const BENCH_FENS: &[&str] = &[
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",

@@ -1,143 +1,51 @@
-use std::{
-    cmp::max,
-    sync::{
-        Arc,
-        atomic::{AtomicU8, AtomicU64, Ordering},
-        mpsc::{self, Receiver, Sender, channel},
-    },
-    thread::{self, JoinHandle},
-};
-
-use thiserror::Error;
+use std::sync::{Arc, atomic::Ordering};
 
 use crate::{
-    board::board::Board,
     common::r#move::Move,
     eval::material::{Score, eval},
-    search::{position::Position, time::TimeManager},
+    search::{
+        position::Position,
+        worker::{SearchError, SearchStdOut, SharedData},
+    },
 };
 
-#[derive(Debug)]
-pub struct Search {
-    shared_data: Option<Arc<SharedData>>,
-    worker_thread: JoinHandle<Result<(), SearchError>>,
-    sender: Sender<WorkerCommand>,
+#[derive(Debug, Clone, Copy)]
+struct AlphaBeta {
+    alpha: Score,
+    beta: Score,
 }
 
-impl Search {
-    pub fn new() -> Search {
-        let (sender, receiver) = channel::<WorkerCommand>();
-        let worker_thread = thread::spawn(|| Search::worker_loop(receiver));
-        Search {
-            worker_thread,
-            sender,
-            shared_data: None,
+impl AlphaBeta {
+    #[inline]
+    fn new() -> AlphaBeta {
+        AlphaBeta {
+            alpha: Score::MIN,
+            beta: Score::MAX,
         }
     }
 
     #[inline]
-    pub fn stop(&self) {
-        let Some(shared) = &self.shared_data else {
-            return;
-        };
-        shared.time_manager.stop();
+    fn narrow(&mut self, score: Score) {
+        self.alpha = Ord::max(score, self.alpha)
     }
 
-    fn worker_loop(cmds: Receiver<WorkerCommand>) -> Result<(), SearchError> {
-        for cmd in &cmds {
-            match cmd {
-                WorkerCommand::Search((shared, output)) => {
-                    negamax(shared.clone(), output)?;
-                }
-                WorkerCommand::Stop => {
-                    break;
-                }
-                WorkerCommand::CallerWait(sender) => {
-                    sender.send(()).map_err(|_| SearchError::CallerWait)?;
-                }
-            }
+    #[inline]
+    fn switch(&self) -> AlphaBeta {
+        AlphaBeta {
+            alpha: -self.beta,
+            beta: -self.alpha,
         }
-        Ok(())
     }
 
-    pub fn start_search(
-        &mut self,
-        board: Board,
-        time_manager: TimeManager,
-        output: SearchStdOut,
-    ) -> Result<Arc<SharedData>, SearchError> {
-        /*
-        later for multiple threads here would be the place to clone the shared
-        data arc
-        */
-        let shared_data = SharedData::new(board, time_manager);
-        self.sender
-            .send(WorkerCommand::Search((shared_data.clone(), output)))
-            .map_err(|_| SearchError::SendCommand)?;
-        self.shared_data = Some(shared_data.clone());
-        Ok(shared_data)
+    #[inline]
+    fn best_score(&self) -> Score {
+        self.alpha
     }
 
-    pub fn wait(&self) -> Result<(), SearchError> {
-        let (sender, reciever) = mpsc::channel::<()>();
-        self.sender
-            .send(WorkerCommand::CallerWait(sender))
-            .map_err(|_| SearchError::CallerWait)?;
-        reciever.recv().map_err(|_| SearchError::CallerWait)?;
-        Ok(())
+    #[inline]
+    fn prune(&self) -> bool {
+        self.alpha >= self.beta
     }
-
-    pub fn quit(self) -> Result<(), SearchError> {
-        self.sender
-            .send(WorkerCommand::Stop)
-            .map_err(|_| SearchError::Stop)?;
-        self.worker_thread.join().map_err(|_| SearchError::Stop)?
-    }
-}
-
-#[derive(Debug)]
-pub struct SharedData {
-    pub board: Board,
-    pub time_manager: TimeManager,
-    pub depth: AtomicU8,
-    pub nodes: AtomicU64,
-}
-
-impl SharedData {
-    pub fn new(board: Board, time_manager: TimeManager) -> Arc<SharedData> {
-        Arc::new(SharedData {
-            board,
-            time_manager,
-            depth: AtomicU8::new(0),
-            nodes: AtomicU64::new(0),
-        })
-    }
-}
-
-#[derive(Debug)]
-enum WorkerCommand {
-    Search((Arc<SharedData>, SearchStdOut)),
-    CallerWait(Sender<()>),
-    Stop,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum SearchStdOut {
-    // TODO: Make an ALL
-    BestMove,
-    None,
-}
-
-#[derive(Debug, Error)]
-pub enum SearchError {
-    #[error("no legal moves")]
-    NoLegalMoves,
-    #[error("failed to send command to worker")]
-    SendCommand,
-    #[error("failed to send stop command to worker")]
-    Stop,
-    #[error("Couldnt wait for the worker thread")]
-    CallerWait,
 }
 
 #[inline]
@@ -167,16 +75,21 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
     let mut prev_best_move: Move = first_move;
 
     loop {
-        let mut best_score = Score::new();
+        let mut alpha_beta = AlphaBeta::new();
         let mut best_move = first_move;
 
         for mv in moves.clone() {
             let mut new_pos = Position::new(shared.board.clone(), usize::from(ply));
             new_pos.do_move(mv);
 
-            let Some(score) =
-                negamax_recursion(&mut new_pos, ply - 1, &mut node_count, &shared).map(|s| -s)
-            else {
+            let Some(score) = negamax_recursion(
+                &mut new_pos,
+                ply - 1,
+                &mut node_count,
+                alpha_beta.switch(),
+                &shared,
+            )
+            .map(|s| -s) else {
                 // recursion only returns none if hit hard limit
                 shared.nodes.store(node_count, Ordering::Relaxed);
                 if output == SearchStdOut::BestMove {
@@ -185,8 +98,8 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
                 return Ok(());
             };
 
-            if score > best_score {
-                best_score = score;
+            if score > alpha_beta.alpha {
+                alpha_beta.alpha = score;
                 best_move = mv;
             }
         }
@@ -201,7 +114,8 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
             let nps = shared.time_manager.calc_nps(nodes);
             let time = shared.time_manager.time();
             println!(
-                "info depth {ply} seldepth {ply} score cp {best_score} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
+                "info depth {ply} seldepth {ply} score cp {} nodes {nodes} nps {nps} hashfull 0 pv {} time {time}",
+                alpha_beta.alpha,
                 best_move.uci()
             );
         }
@@ -232,14 +146,21 @@ fn negamax_recursion(
     position: &mut Position,
     depth: u8,
     node_count: &mut u64,
+    mut alpha_beta: AlphaBeta,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
+    *node_count += 1;
+    if (*node_count).is_multiple_of(0x1000)
+        && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
+    {
+        return None;
+    }
+
     if position.is_draw() {
         return Some(Score::DRAW);
     }
 
     if depth == 0 {
-        *node_count += 1;
         return Some(eval(position.board()));
     }
 
@@ -253,20 +174,17 @@ fn negamax_recursion(
         }
     }
 
-    let mut best_score = Score::new();
     for mv in moves {
-        if (*node_count).is_multiple_of(0x400)
-            && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
-        {
-            return None;
-        }
-
         let prev_board = position.board().clone();
         position.do_move(mv);
-        let score = -negamax_recursion(position, depth - 1, node_count, shared)?;
+        let score =
+            -negamax_recursion(position, depth - 1, node_count, alpha_beta.switch(), shared)?;
         position.undo_move(prev_board);
-        best_score = max(best_score, score);
+        alpha_beta.narrow(score);
+        if alpha_beta.prune() {
+            break;
+        }
     }
-    *node_count += 1;
-    Some(best_score)
+
+    Some(alpha_beta.best_score())
 }

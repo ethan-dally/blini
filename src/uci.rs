@@ -10,8 +10,8 @@ use crate::{
     board::board::Board,
     common::colour::Colour,
     search::{
-        search::{Search, SearchStdOut},
         time::TimeManager,
+        worker::{Search, SearchStdOut},
     },
 };
 
