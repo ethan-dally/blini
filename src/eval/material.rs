@@ -1,6 +1,6 @@
-use crate::{board::board::Board, common::{piece::Piece, square::Square}, search::search::Score};
+use crate::{board::board::Board, common::{colour::Colour, piece::Piece}, search::search::Score};
 
-const PIECES: [u16; 6] = [ 100, 300, 325, 500, 900, 0 ];
+const PIECES: [u16; 6] = [100, 300, 325, 500, 900, 0];
 
 // static psq tables taken from https://chessprogramming.org/Simplified_Evaluation_Function
 // king in a seperate table
@@ -84,7 +84,7 @@ const WHITE_PSQT: [[i16; 64]; 6] = {
     let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
     let mut piece = 0;
     while piece < 6 {
-        let piece_val = PIECES[piece] as i16;
+        let piece_val = PIECES[piece].cast_signed();
         let mut sqr = 0;
         while sqr < 64 {
             psqt[piece][sqr] = PSQT[piece][sqr] + piece_val;
@@ -99,7 +99,7 @@ const BLACK_PSQT: [[i16; 64]; 6] = {
     let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
     let mut piece = 0;
     while piece < 6 {
-        let piece_val = PIECES[piece] as i16;
+        let piece_val = PIECES[piece].cast_signed();
         let mut sqr = 0;
         while sqr < 64 {
             psqt[piece][sqr] = -PSQT[piece][sqr ^ 0b111000] - piece_val;
@@ -115,10 +115,10 @@ const BLACK_PSQT: [[i16; 64]; 6] = {
 pub fn eval(board: &Board) -> Score {
     let mut score: i16 = 0;
     for piece in Piece::ALL {
-        for sqr in (board.pieces(piece) & board.colours(board.stm())).iter() {
+        for sqr in (board.pieces(piece) & board.colours(Colour::White)).iter() {
             score += WHITE_PSQT[piece as usize][sqr as usize];
         }
-        for sqr in (board.pieces(piece) & board.colours(!board.stm())).iter() {
+        for sqr in (board.pieces(piece) & board.colours(Colour::Black)).iter() {
             score += BLACK_PSQT[piece as usize][sqr as usize];
         }
     }

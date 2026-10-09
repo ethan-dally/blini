@@ -1,8 +1,11 @@
-use std::{fmt::Display, sync::{Arc, atomic::Ordering}};
+use std::{
+    fmt::Display,
+    sync::{Arc, atomic::Ordering},
+};
 
 use crate::{
     common::r#move::Move,
-    eval::material::{eval},
+    eval::material::eval,
     search::{
         position::Position,
         worker::{SearchError, SearchStdOut, SharedData},
@@ -53,7 +56,9 @@ pub struct Score(i16);
 
 impl Score {
     #[inline]
-    pub fn from_i16(val: i16) -> Score {Score(val)}
+    pub fn from_i16(val: i16) -> Score {
+        Score(val)
+    }
     pub const CHECKMATE: Score = Score(10_000);
     pub const MIN: Score = Score(-10_000);
     pub const MAX: Score = Score(10_000);
