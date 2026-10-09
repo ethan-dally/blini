@@ -87,7 +87,7 @@ const WHITE_PSQT: [[i16; 64]; 6] = {
         let piece_val = PIECES[piece].cast_signed();
         let mut sqr = 0;
         while sqr < 64 {
-            psqt[piece][sqr] = PSQT[piece][sqr] + piece_val;
+            psqt[piece][sqr] = PSQT[piece][sqr ^ 0b111000] + piece_val;
             sqr += 1;
         }
         piece += 1;
@@ -102,7 +102,7 @@ const BLACK_PSQT: [[i16; 64]; 6] = {
         let piece_val = PIECES[piece].cast_signed();
         let mut sqr = 0;
         while sqr < 64 {
-            psqt[piece][sqr] = -PSQT[piece][sqr ^ 0b111000] - piece_val;
+            psqt[piece][sqr] = -PSQT[piece][sqr] - piece_val;
             sqr += 1;
         }
         piece += 1;
@@ -123,4 +123,15 @@ pub fn eval(board: &Board) -> Score {
         }
     }
     Score::from_i16(score)
+}
+
+#[test]
+fn print_depth_1_moves() {
+    let board = Board::startpos();
+    for mv in board.get_moves() {
+        let mut new_board = board.clone();
+        new_board.do_move(mv);
+        println!("move: {}, eval: {}", mv.uci(), eval(&new_board));
+    }
+    assert!(false)
 }
