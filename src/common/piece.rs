@@ -6,9 +6,9 @@ use crate::common::colour::Colour;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Piece {
     Pawn,
-    Rook,
     Knight,
     Bishop,
+    Rook,
     Queen,
     King,
 }
@@ -17,9 +17,9 @@ impl From<Piece> for char {
     fn from(value: Piece) -> Self {
         match value {
             Piece::Pawn => 'p',
-            Piece::Rook => 'r',
             Piece::Knight => 'n',
             Piece::Bishop => 'b',
+            Piece::Rook => 'r',
             Piece::Queen => 'q',
             Piece::King => 'k',
         }
@@ -30,9 +30,9 @@ impl Piece {
     pub fn display(&self, colour: Colour) -> char {
         let c = match &self {
             Piece::Pawn => 'p',
-            Piece::Rook => 'r',
             Piece::Knight => 'n',
             Piece::Bishop => 'b',
+            Piece::Rook => 'r',
             Piece::Queen => 'q',
             Piece::King => 'k',
         };
@@ -45,9 +45,9 @@ impl Piece {
     pub const ALL: [Piece; 6] = {
         [
             Piece::Pawn,
-            Piece::Rook,
             Piece::Knight,
             Piece::Bishop,
+            Piece::Rook,
             Piece::Queen,
             Piece::King,
         ]
@@ -59,9 +59,9 @@ impl TryFrom<char> for Piece {
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value.to_ascii_lowercase() {
             'p' => Ok(Piece::Pawn),
-            'r' => Ok(Piece::Rook),
             'n' => Ok(Piece::Knight),
             'b' => Ok(Piece::Bishop),
+            'r' => Ok(Piece::Rook),
             'q' => Ok(Piece::Queen),
             'k' => Ok(Piece::King),
             _ => Err("invalid char".to_string()),
@@ -74,9 +74,9 @@ impl TryFrom<&str> for Piece {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match &*value.to_ascii_lowercase() {
             "p" => Ok(Piece::Pawn),
-            "r" => Ok(Piece::Rook),
             "n" => Ok(Piece::Knight),
             "b" => Ok(Piece::Bishop),
+            "r" => Ok(Piece::Rook),
             "q" => Ok(Piece::Queen),
             "k" => Ok(Piece::King),
             _ => Err("invalid piece string".to_string()),

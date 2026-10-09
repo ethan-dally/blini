@@ -1,8 +1,11 @@
-use std::sync::{Arc, atomic::Ordering};
+use std::{
+    fmt::Display,
+    sync::{Arc, atomic::Ordering},
+};
 
 use crate::{
     common::r#move::Move,
-    eval::material::{Score, eval},
+    eval::material::eval,
     search::{
         position::Position,
         worker::{SearchError, SearchStdOut, SharedData},
@@ -45,6 +48,33 @@ impl AlphaBeta {
     #[inline]
     fn prune(&self) -> bool {
         self.alpha >= self.beta
+    }
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+pub struct Score(i16);
+
+impl Score {
+    #[inline]
+    pub fn from_i16(val: i16) -> Score {
+        Score(val)
+    }
+    pub const CHECKMATE: Score = Score(10_000);
+    pub const MIN: Score = Score(-10_000);
+    pub const MAX: Score = Score(10_000);
+    pub const DRAW: Score = Score(0);
+}
+
+impl Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::ops::Neg for Score {
+    type Output = Score;
+    fn neg(self) -> Self::Output {
+        Score(-self.0)
     }
 }
 
@@ -141,7 +171,6 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
     }
 }
 
-#[inline]
 fn negamax_recursion(
     position: &mut Position,
     depth: u8,

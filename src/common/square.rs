@@ -54,6 +54,7 @@ impl Square {
 
     #[inline]
     pub const fn relative(self, colour: Colour) -> Square {
+        // TODO do some ^ 0b111000 instead?
         let rank = self.rank().relative_to(colour);
         Square::new(rank, self.file())
     }
