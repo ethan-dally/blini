@@ -1,4 +1,4 @@
-use crate::{board::board::Board, common::{colour::Colour, piece::Piece}, search::search::Score};
+use crate::{board::board::Board, common::{piece::Piece}, search::search::Score};
 
 const PIECES: [u16; 6] = [100, 300, 325, 500, 900, 0];
 
@@ -80,7 +80,7 @@ const PSQT: [[i16; 64]; 6] = [
     ]
 ];
 
-const WHITE_PSQT: [[i16; 64]; 6] = {
+const COMBINED_PSQT: [[i16; 64]; 6] = {
     let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
     let mut piece = 0;
     while piece < 6 {
@@ -95,43 +95,17 @@ const WHITE_PSQT: [[i16; 64]; 6] = {
     psqt
 };
 
-const BLACK_PSQT: [[i16; 64]; 6] = {
-    let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
-    let mut piece = 0;
-    while piece < 6 {
-        let piece_val = PIECES[piece].cast_signed();
-        let mut sqr = 0;
-        while sqr < 64 {
-            psqt[piece][sqr] = -PSQT[piece][sqr] - piece_val;
-            sqr += 1;
-        }
-        piece += 1;
-    }
-    psqt
-};
-
 #[inline]
-#[allow(clippy::cast_possible_truncation)]
 pub fn eval(board: &Board) -> Score {
-    let mut score: i16 = 0;
+    let mut us_score: i16 = 0;
+    let mut them_score: i16 = 0;
     for piece in Piece::ALL {
-        for sqr in (board.pieces(piece) & board.colours(Colour::White)).iter() {
-            score += WHITE_PSQT[piece as usize][sqr as usize];
+        for sqr in (board.pieces(piece) & board.colours(board.stm())).iter() {
+            us_score += COMBINED_PSQT[piece as usize][sqr.relative(board.stm()) as usize];
         }
-        for sqr in (board.pieces(piece) & board.colours(Colour::Black)).iter() {
-            score += BLACK_PSQT[piece as usize][sqr as usize];
+        for sqr in (board.pieces(piece) & board.colours(!board.stm())).iter() {
+            them_score += COMBINED_PSQT[piece as usize][sqr.relative(!board.stm()) as usize];
         }
     }
-    Score::from_i16(score)
-}
-
-#[test]
-fn print_depth_1_moves() {
-    let board = Board::startpos();
-    for mv in board.get_moves() {
-        let mut new_board = board.clone();
-        new_board.do_move(mv);
-        println!("move: {}, eval: {}", mv.uci(), eval(&new_board));
-    }
-    assert!(false)
+    Score::from_i16(us_score - them_score)
 }
