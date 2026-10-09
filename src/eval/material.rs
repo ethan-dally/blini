@@ -1,20 +1,12 @@
-use std::fmt::Display;
-
 use crate::{board::board::Board, common::{piece::Piece, square::Square}, search::search::Score};
 
-const PIECES: [(Piece, u32); 5] = [
-    (Piece::Pawn, 100),
-    (Piece::Knight, 300),
-    (Piece::Bishop, 325),
-    (Piece::Rook, 500),
-    (Piece::Queen, 900),
-];
+const PIECES: [u16; 6] = [ 100, 300, 325, 500, 900, 0 ];
 
 // static psq tables taken from https://chessprogramming.org/Simplified_Evaluation_Function
 // king in a seperate table
 
 #[rustfmt::skip]
-const WHITE_PSQT: [[i8; 64]; 6] = [
+const PSQT: [[i16; 64]; 6] = [
     // Pawn
     [
          0,  0,  0,  0,  0,  0,  0,  0,
@@ -88,13 +80,29 @@ const WHITE_PSQT: [[i8; 64]; 6] = [
     ]
 ];
 
-const BLACK_PSQT: [[i8; 64]; 6] = {
-    let mut psqt: [[i8; 64]; 6] = [[0; 64]; 6];
+const WHITE_PSQT: [[i16; 64]; 6] = {
+    let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
     let mut piece = 0;
     while piece < 6 {
+        let piece_val = PIECES[piece] as i16;
         let mut sqr = 0;
         while sqr < 64 {
-            psqt[piece][sqr] = WHITE_PSQT[piece][sqr ^ 0b111000];
+            psqt[piece][sqr] = PSQT[piece][sqr] + piece_val;
+            sqr += 1;
+        }
+        piece += 1;
+    }
+    psqt
+};
+
+const BLACK_PSQT: [[i16; 64]; 6] = {
+    let mut psqt: [[i16; 64]; 6] = [[0; 64]; 6];
+    let mut piece = 0;
+    while piece < 6 {
+        let piece_val = PIECES[piece] as i16;
+        let mut sqr = 0;
+        while sqr < 64 {
+            psqt[piece][sqr] = -PSQT[piece][sqr ^ 0b111000] - piece_val;
             sqr += 1;
         }
         piece += 1;
@@ -106,11 +114,13 @@ const BLACK_PSQT: [[i8; 64]; 6] = {
 #[allow(clippy::cast_possible_truncation)]
 pub fn eval(board: &Board) -> Score {
     let mut score: i16 = 0;
-    for (piece, piece_score) in PIECES {
-        let us_count = (board.pieces(piece) & board.colours(board.stm())).count();
-        let them_count = (board.pieces(piece) & board.colours(!board.stm())).count();
-        score += (us_count * piece_score) as i16;
-        score -= (them_count * piece_score) as i16;
+    for piece in Piece::ALL {
+        for sqr in (board.pieces(piece) & board.colours(board.stm())).iter() {
+            score += WHITE_PSQT[piece as usize][sqr as usize];
+        }
+        for sqr in (board.pieces(piece) & board.colours(!board.stm())).iter() {
+            score += BLACK_PSQT[piece as usize][sqr as usize];
+        }
     }
     Score::from_i16(score)
 }

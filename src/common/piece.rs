@@ -6,9 +6,9 @@ use crate::common::colour::Colour;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Enum)]
 pub enum Piece {
     Pawn,
-    Rook,
     Knight,
     Bishop,
+    Rook,
     Queen,
     King,
 }
