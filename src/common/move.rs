@@ -115,23 +115,25 @@ impl Move {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct MoveList(pub ArrayVec<Move, MAX_MOVES>);
+pub struct MoveList {
+    pub list: ArrayVec<Move, MAX_MOVES>,
+}
 
 impl MoveList {
     #[inline]
     pub fn add(&mut self, mv: Move) {
-        self.0.push(mv);
+        self.list.push(mv);
     }
 
     #[inline]
     pub fn find(&self, src: Square, dst: Square, promoted_to: Option<Piece>) -> Option<Move> {
         if let Some(piece) = promoted_to {
-            self.0
+            self.list
                 .iter()
                 .copied()
                 .find(|mv| mv.dst() == dst && mv.src() == src && mv.flag().piece() == piece)
         } else {
-            self.0
+            self.list
                 .iter()
                 .copied()
                 .find(|mv| mv.dst() == dst && mv.src() == src && !mv.flag().is_promotion())
@@ -140,12 +142,12 @@ impl MoveList {
 
     #[inline]
     pub fn iter(&self) -> std::slice::Iter<'_, Move> {
-        self.0.iter()
+        self.list.iter()
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.list.is_empty()
     }
 
     #[allow(dead_code)]
@@ -153,7 +155,7 @@ impl MoveList {
         let mut src_piece_array = [0u8; 64];
         let mut dst_piece_array = [0u8; 64];
 
-        for mv in &self.0 {
+        for mv in &self.list {
             src_piece_array[mv.src() as usize] += 1;
             dst_piece_array[mv.dst() as usize] += 1;
         }
@@ -184,7 +186,7 @@ impl MoveList {
             println!();
         }
 
-        println!("count: {}", self.0.len());
+        println!("count: {}", self.list.len());
     }
 }
 
@@ -193,6 +195,6 @@ impl IntoIterator for MoveList {
     type IntoIter = arrayvec::IntoIter<Move, MAX_MOVES>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.list.into_iter()
     }
 }

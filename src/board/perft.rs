@@ -71,7 +71,7 @@ impl Board {
         }
 
         if depth == 1 {
-            let count = move_list.0.iter().len() as u64;
+            let count = move_list.list.iter().len() as u64;
             return count;
         }
 
@@ -95,7 +95,7 @@ impl Board {
         }
 
         if depth == 1 {
-            let count = move_list.0.iter().len() as u64;
+            let count = move_list.list.iter().len() as u64;
             let mut move_flags = FlagsCount::default();
             for mv in move_list {
                 move_flags.add(mv.flag());

@@ -4,13 +4,41 @@ use std::{
 };
 
 use crate::{
-    common::r#move::Move,
+    board::board::Board,
+    common::r#move::{Move, MoveFlag, MoveList},
     eval::material::eval,
     search::{
         position::Position,
         worker::{SearchError, SearchStdOut, SharedData},
     },
 };
+
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+pub struct Score(i16);
+
+impl Score {
+    #[inline]
+    pub fn from_i16(val: i16) -> Score {
+        Score(val)
+    }
+    pub const CHECKMATE: Score = Score(10_000);
+    pub const MIN: Score = Score(-10_000);
+    pub const MAX: Score = Score(10_000);
+    pub const DRAW: Score = Score(0);
+}
+
+impl Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::ops::Neg for Score {
+    type Output = Score;
+    fn neg(self) -> Self::Output {
+        Score(-self.0)
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 struct AlphaBeta {
@@ -51,36 +79,59 @@ impl AlphaBeta {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
-pub struct Score(i16);
-
-impl Score {
+impl MoveList {
     #[inline]
-    pub fn from_i16(val: i16) -> Score {
-        Score(val)
-    }
-    pub const CHECKMATE: Score = Score(10_000);
-    pub const MIN: Score = Score(-10_000);
-    pub const MAX: Score = Score(10_000);
-    pub const DRAW: Score = Score(0);
-}
+    fn flag_prio(flag: MoveFlag) -> u8 {
+        match flag {
+            //high
+            MoveFlag::CapturePromotionQueen => 0b000,
+            MoveFlag::PromotionQueen => 0b000,
 
-impl Display for Score {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+            //med-high
+            MoveFlag::Capture => 0b001,
+            MoveFlag::EnPassant => 0b001,
 
-impl std::ops::Neg for Score {
-    type Output = Score;
-    fn neg(self) -> Self::Output {
-        Score(-self.0)
+            //med
+            MoveFlag::CastleShort => 0b010,
+            MoveFlag::CastleLong => 0b010,
+
+            //med low
+            MoveFlag::NonCapture => 0b011,
+            MoveFlag::PawnDouble => 0b011,
+
+            //low
+            MoveFlag::PromotionKnight => 0b100,
+            MoveFlag::CapturePromotionKnight => 0b100,
+
+            //v-low
+            MoveFlag::PromotionRook => 0b111,
+            MoveFlag::PromotionBishop => 0b111,
+            MoveFlag::CapturePromotionRook => 0b111,
+            MoveFlag::CapturePromotionBishop => 0b111,
+        }
+    }
+
+    #[inline]
+    fn move_order(mut self, _board: &Board) -> MoveList {
+        self.list.sort_unstable_by_key(|mv| {
+            // let mvv = board
+            //     .mailbox(mv.dst())
+            //     .map_or(0, |(p,_)|{p as u8});
+
+            // let lva = board
+            //     .mailbox(mv.src())
+            //     .map(|(p,_)|{p as u8})
+            //     .expect("cant order a move that dosent have a src piece");
+
+            MoveList::flag_prio(mv.flag())
+        });
+        self
     }
 }
 
 #[inline]
 pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), SearchError> {
-    let moves = shared.board.get_moves();
+    let moves = shared.board.get_moves().move_order(&shared.board);
 
     //checkmate check
     let length = moves.iter().len();
@@ -89,7 +140,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
     }
 
     //early return check
-    let first_move = moves.0[0];
+    let first_move = moves.list[0];
     if length == 1 {
         shared.depth.store(0, Ordering::Relaxed);
         shared.nodes.store(1, Ordering::Relaxed);

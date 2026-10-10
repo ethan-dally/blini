@@ -1,4 +1,4 @@
-use crate::{board::board::Board, common::{piece::Piece}, search::search::Score};
+use crate::{board::board::Board, common::piece::Piece, search::search::Score};
 
 const PIECES: [u16; 6] = [100, 300, 325, 500, 900, 0];
 
