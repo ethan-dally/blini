@@ -141,6 +141,12 @@ impl MoveList {
     }
 
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
+
+    #[inline]
     pub fn iter(&self) -> std::slice::Iter<'_, Move> {
         self.list.iter()
     }

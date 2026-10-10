@@ -4,7 +4,6 @@ use std::{
 };
 
 use crate::{
-    board::board::Board,
     common::r#move::{Move, MoveFlag, MoveList},
     eval::material::eval,
     search::{
@@ -79,30 +78,25 @@ impl AlphaBeta {
     }
 }
 
-impl MoveList {
+impl Move {
     #[inline]
-    fn flag_prio(flag: MoveFlag) -> u8 {
-        match flag {
+    fn flag_prio(self) -> u8 {
+        match self.flag() {
             //high
             MoveFlag::CapturePromotionQueen => 0b000,
             MoveFlag::PromotionQueen => 0b000,
-
             //med-high
             MoveFlag::Capture => 0b001,
             MoveFlag::EnPassant => 0b001,
-
             //med
             MoveFlag::CastleShort => 0b010,
             MoveFlag::CastleLong => 0b010,
-
             //med low
             MoveFlag::NonCapture => 0b011,
             MoveFlag::PawnDouble => 0b011,
-
             //low
             MoveFlag::PromotionKnight => 0b100,
             MoveFlag::CapturePromotionKnight => 0b100,
-
             //v-low
             MoveFlag::PromotionRook => 0b111,
             MoveFlag::PromotionBishop => 0b111,
@@ -110,28 +104,50 @@ impl MoveList {
             MoveFlag::CapturePromotionBishop => 0b111,
         }
     }
+}
+
+#[derive(Debug)]
+struct MovePicker {
+    list: MoveList,
+    searched: usize,
+}
+
+impl MovePicker {
+    #[inline]
+    fn iter_ordered(mv_list: MoveList) -> impl Iterator<Item = Move> {
+        MovePicker{list: mv_list, searched: 0}.into_iter()
+    }
+}
+
+impl Iterator for MovePicker {
+    type Item = Move;
 
     #[inline]
-    fn move_order(mut self, _board: &Board) -> MoveList {
-        self.list.sort_unstable_by_key(|mv| {
-            // let mvv = board
-            //     .mailbox(mv.dst())
-            //     .map_or(0, |(p,_)|{p as u8});
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.list.len() == self.searched {
+            return None;
+        }
 
-            // let lva = board
-            //     .mailbox(mv.src())
-            //     .map(|(p,_)|{p as u8})
-            //     .expect("cant order a move that dosent have a src piece");
+        let mut best = self.searched;
+        self.searched += 1;
 
-            MoveList::flag_prio(mv.flag())
-        });
-        self
+        for index in self.searched..self.list.len() {
+            let index_mv = self.list.list[index as usize];
+            let best_mv = self.list.list[best as usize];
+            if index_mv.flag_prio() < best_mv.flag_prio() {
+                best = index;
+            }
+        }
+
+        let out = self.list.list[best];
+        self.list.list.swap(best,self.searched - 1);
+        return Some(out);
     }
 }
 
 #[inline]
 pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), SearchError> {
-    let moves = shared.board.get_moves().move_order(&shared.board);
+    let moves = shared.board.get_moves();
 
     //checkmate check
     let length = moves.iter().len();
@@ -159,7 +175,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         let mut alpha_beta = AlphaBeta::new();
         let mut best_move = first_move;
 
-        for mv in moves.clone() {
+        for mv in MovePicker::iter_ordered(moves.clone()) {
             let mut new_pos = Position::new(shared.board.clone(), usize::from(ply));
             new_pos.do_move(mv);
 
@@ -254,7 +270,7 @@ fn negamax_recursion(
         }
     }
 
-    for mv in moves {
+    for mv in MovePicker::iter_ordered(moves) {
         let prev_board = position.board().clone();
         position.do_move(mv);
         let score =
