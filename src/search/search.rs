@@ -12,6 +12,33 @@ use crate::{
     },
 };
 
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+pub struct Score(i16);
+
+impl Score {
+    #[inline]
+    pub fn from_i16(val: i16) -> Score {
+        Score(val)
+    }
+    pub const CHECKMATE: Score = Score(10_000);
+    pub const MIN: Score = Score(-10_000);
+    pub const MAX: Score = Score(10_000);
+    pub const DRAW: Score = Score(0);
+}
+
+impl Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::ops::Neg for Score {
+    type Output = Score;
+    fn neg(self) -> Self::Output {
+        Score(-self.0)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct AlphaBeta {
     alpha: Score,
@@ -51,33 +78,6 @@ impl AlphaBeta {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
-pub struct Score(i16);
-
-impl Score {
-    #[inline]
-    pub fn from_i16(val: i16) -> Score {
-        Score(val)
-    }
-    pub const CHECKMATE: Score = Score(10_000);
-    pub const MIN: Score = Score(-10_000);
-    pub const MAX: Score = Score(10_000);
-    pub const DRAW: Score = Score(0);
-}
-
-impl Display for Score {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::ops::Neg for Score {
-    type Output = Score;
-    fn neg(self) -> Self::Output {
-        Score(-self.0)
-    }
-}
-
 #[inline]
 pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), SearchError> {
     let moves = shared.board.get_moves();
@@ -89,7 +89,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
     }
 
     //early return check
-    let first_move = moves.0[0];
+    let first_move = moves.list[0];
     if length == 1 {
         shared.depth.store(0, Ordering::Relaxed);
         shared.nodes.store(1, Ordering::Relaxed);
@@ -108,7 +108,7 @@ pub fn negamax(shared: Arc<SharedData>, output: SearchStdOut) -> Result<(), Sear
         let mut alpha_beta = AlphaBeta::new();
         let mut best_move = first_move;
 
-        for mv in moves.clone() {
+        for mv in moves.clone().iter_ordered() {
             let mut new_pos = Position::new(shared.board.clone(), usize::from(ply));
             new_pos.do_move(mv);
 
@@ -203,7 +203,7 @@ fn negamax_recursion(
         }
     }
 
-    for mv in moves {
+    for mv in moves.iter_ordered() {
         let prev_board = position.board().clone();
         position.do_move(mv);
         let score =
