@@ -158,7 +158,6 @@ impl Board {
     }
 
     #[inline]
-    #[allow(dead_code)]
     pub fn to_fen(&self) -> String {
         let mut fen = String::new();
         for rank in Rank::ALL.iter().rev() {

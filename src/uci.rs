@@ -32,6 +32,7 @@ enum ReceiveUci {
     IsReady,
     Bench,
     Perft(u8),
+    Fen,
 }
 
 impl ReceiveUci {
@@ -49,6 +50,7 @@ impl ReceiveUci {
             "ucinewgame" => Some(ReceiveUci::UciNewGame),
             "isready" => Some(ReceiveUci::IsReady),
             "bench" => Some(ReceiveUci::Bench),
+            "fen" => Some(ReceiveUci::Fen),
             _ => {
                 println!("info unknown command '{uci_raw}'");
                 None
@@ -292,6 +294,10 @@ impl Engine {
             }
             ReceiveUci::Perft(depth) => {
                 Engine::run_perft(self.position.clone(), depth);
+                Ok(Abort::No)
+            }
+            ReceiveUci::Fen => {
+                println!("{}", self.position.to_fen());
                 Ok(Abort::No)
             }
         }
