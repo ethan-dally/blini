@@ -4,9 +4,7 @@ use std::{
 };
 
 use crate::{
-    common::r#move::Move,
-    eval::material::eval,
-    search::{
+    common::r#move::Move, eval::material::eval, search::{
         position::Position,
         worker::{SearchError, SearchStdOut, SharedData},
     },
@@ -20,10 +18,16 @@ impl Score {
     pub fn from_i16(val: i16) -> Score {
         Score(val)
     }
-    pub const CHECKMATE: Score = Score(10_000);
     pub const MIN: Score = Score(-10_000);
     pub const MAX: Score = Score(10_000);
     pub const DRAW: Score = Score(0);
+}
+
+impl Score {
+    #[inline]
+    fn checkmate(position: &Position) -> Score {
+        Score(10_000 - position.depth() as i16)
+    }
 }
 
 impl Display for Score {
@@ -197,7 +201,7 @@ fn negamax_recursion(
 
     if moves.is_empty() {
         if position.board().in_check() {
-            return Some(-Score::CHECKMATE);
+            return Some(-Score::checkmate(position));
         } else {
             return Some(Score::DRAW);
         }

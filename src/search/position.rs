@@ -50,4 +50,9 @@ impl Position {
 
         false
     }
+
+    #[inline]
+    pub fn depth(&self) -> usize {
+        self.prev.len()
+    }
 }
