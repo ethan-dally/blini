@@ -3,20 +3,25 @@ use crate::common::r#move::{Move, MoveFlag, MoveList};
 impl MoveList {
     #[inline]
     pub fn iter_ordered(self) -> impl Iterator<Item = Move> {
-        MovePicker {
+        MoveOrder {
             list: self,
-            searched: 0,
+            searched: 0
         }
+    }
+
+    #[inline]
+    pub fn iter_noisy(&self) -> impl Iterator<Item = Move> + '_ {
+        self.list.iter().copied().filter(|mv| mv.flag().is_noisy())
     }
 }
 
 #[derive(Debug)]
-struct MovePicker {
+struct MoveOrder {
     list: MoveList,
     searched: usize,
 }
 
-impl Iterator for MovePicker {
+impl Iterator for MoveOrder {
     type Item = Move;
 
     #[inline]
