@@ -182,6 +182,7 @@ fn negamax_recursion(
     mut alpha_beta: AlphaBeta,
     shared: &Arc<SharedData>,
 ) -> Option<Score> {
+
     *node_count += 1;
     if (*node_count).is_multiple_of(0x1000)
         && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
@@ -189,12 +190,13 @@ fn negamax_recursion(
         return None;
     }
 
-    if position.is_draw() {
-        return Some(Score::DRAW);
+    if depth == 0 {
+        // note: dont switch alpha beta here as were not going down a ply yet**
+        return Some(quiescence_search(position, node_count, alpha_beta, shared)?);
     }
 
-    if depth == 0 {
-        return Some(eval(position.board()));
+    if position.is_draw() {
+        return Some(Score::DRAW);
     }
 
     let moves = position.board().get_moves();
@@ -213,6 +215,46 @@ fn negamax_recursion(
         let score =
             -negamax_recursion(position, depth - 1, node_count, alpha_beta.switch(), shared)?;
         position.undo_move(prev_board);
+        alpha_beta.narrow(score);
+        if alpha_beta.prune() {
+            break;
+        }
+    }
+
+    Some(alpha_beta.best_score())
+}
+
+fn quiescence_search(
+    position: &mut Position,
+    node_count: &mut u64,
+    mut alpha_beta: AlphaBeta,
+    shared: &Arc<SharedData>,
+) -> Option<Score> {
+
+    // if position.is_draw() {
+    //     return Some(Score::DRAW);
+    // }
+
+    alpha_beta.narrow(eval(position.board()));
+    if alpha_beta.prune() {
+        return Some(alpha_beta.best_score());
+    }
+
+    let moves = position.board().get_moves();
+
+    for mv in moves.iter_noisy() {
+
+        *node_count += 1;
+        if (*node_count).is_multiple_of(0x1000)
+            && (shared.time_manager.hard_limit() || shared.time_manager.node_limit(*node_count))
+        {
+            return None;
+        }
+
+        let board = position.board().clone();
+        position.do_move(mv);
+        let score = -quiescence_search(position, node_count, alpha_beta.switch(), shared)?;
+        position.undo_move(board);
         alpha_beta.narrow(score);
         if alpha_beta.prune() {
             break;

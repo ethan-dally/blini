@@ -55,6 +55,19 @@ impl MoveFlag {
                 | MoveFlag::CapturePromotionKnight
         )
     }
+
+    #[inline]
+    pub fn is_noisy(&self) -> bool {
+        matches!(
+            *self,
+            MoveFlag::Capture |
+            MoveFlag::EnPassant |
+            MoveFlag::CapturePromotionQueen |
+            MoveFlag::CapturePromotionRook |
+            MoveFlag::CapturePromotionBishop |
+            MoveFlag::CapturePromotionKnight 
+        )
+    }
 }
 
 /*
